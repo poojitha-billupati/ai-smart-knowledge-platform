@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
@@ -8,9 +10,12 @@ import imagesRouter from './routes/images.js';
 import faqRouter from './routes/faq.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use('/images', express.static(path.join(__dirname, '..', 'public', 'images')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

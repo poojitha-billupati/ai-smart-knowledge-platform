@@ -1,21 +1,24 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import { access } from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Information from './models/Information.js';
 import Event from './models/Event.js';
 import Image from './models/Image.js';
 import Faq from './models/Faq.js';
 
-function escapeXml(text) {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const imagesDir = path.join(__dirname, '..', 'public', 'images');
 
-function placeholderImage(label, color) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400">
-    <rect width="600" height="400" fill="${color}"/>
-    <text x="50%" y="50%" fill="#ffffff" font-family="system-ui, sans-serif" font-size="28"
-      text-anchor="middle" dominant-baseline="middle">${escapeXml(label)}</text>
-  </svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+async function assertImageExists(file) {
+  try {
+    await access(path.join(imagesDir, file));
+  } catch {
+    throw new Error(
+      `${file} not found in server/public/images — run "npm run generate:images" first`,
+    );
+  }
 }
 
 const information = [
@@ -56,7 +59,7 @@ const events = [
     location: 'Main Auditorium',
     description:
       'Hands-on workshop covering the basics of machine learning, model training, and deployment. Open to all second-year and above students.',
-    color: '#6d28d9',
+    imageFile: 'ai-ml-workshop.webp',
   },
   {
     title: 'Annual Tech Fest — Innovate',
@@ -64,14 +67,14 @@ const events = [
     location: 'Campus Grounds',
     description:
       'Three-day tech fest with hackathons, robotics demos, and guest talks from industry speakers.',
-    color: '#2563eb',
+    imageFile: 'innovate-tech-fest.webp',
   },
   {
     title: 'Career Fair',
     date: new Date('2026-12-02T09:30:00.000Z'),
     location: 'Sports Complex',
     description: 'Over 40 companies on campus for internship and placement interviews. Bring printed resumes.',
-    color: '#059669',
+    imageFile: 'career-fair.webp',
   },
 ];
 
@@ -113,15 +116,20 @@ export async function seed() {
     Faq.deleteMany({}),
   ]);
 
+  await Promise.all([
+    ...events.map((e) => assertImageExists(e.imageFile)),
+    assertImageExists('central-library.webp'),
+  ]);
+
   await Information.insertMany(information);
   await Faq.insertMany(faq);
 
-  const createdEvents = await Event.insertMany(events.map(({ color, ...rest }) => rest));
+  const createdEvents = await Event.insertMany(events.map(({ imageFile, ...rest }) => rest));
 
   const images = await Image.insertMany(
     createdEvents.map((event, i) => ({
       title: event.title,
-      imageUrl: placeholderImage(event.title, events[i].color),
+      imageUrl: `/images/${events[i].imageFile}`,
       category: 'Events',
       altText: `Banner for ${event.title}`,
       relatedId: event._id,
@@ -138,7 +146,7 @@ export async function seed() {
   const libraryInfo = await Information.findOne({ title: 'Library Hours' });
   await Image.create({
     title: 'Central Library',
-    imageUrl: placeholderImage('Central Library', '#b45309'),
+    imageUrl: '/images/central-library.webp',
     category: 'Campus',
     altText: 'Central library reading hall',
     relatedId: libraryInfo._id,
