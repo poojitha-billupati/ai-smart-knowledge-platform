@@ -11,9 +11,12 @@ function handleValidation(req, res, next) {
 
 /**
  * Standard REST CRUD (list/get/create/update/delete) for a Mongoose model.
- * Write routes are unprotected here — Phase 5 wraps them with requireAdmin (§6).
+ * `protect` (typically [requireAdmin]) guards the write routes (§6).
  */
-export function createCrudRouter(Model, { createValidators = [], updateValidators = [] } = {}) {
+export function createCrudRouter(
+  Model,
+  { createValidators = [], updateValidators = [], protect = [] } = {},
+) {
   const router = Router();
 
   router.get('/', async (req, res, next) => {
@@ -35,7 +38,7 @@ export function createCrudRouter(Model, { createValidators = [], updateValidator
     }
   });
 
-  router.post('/', createValidators, handleValidation, async (req, res, next) => {
+  router.post('/', protect, createValidators, handleValidation, async (req, res, next) => {
     try {
       const doc = await Model.create(req.body);
       res.status(201).json(doc);
@@ -44,7 +47,7 @@ export function createCrudRouter(Model, { createValidators = [], updateValidator
     }
   });
 
-  router.put('/:id', updateValidators, handleValidation, async (req, res, next) => {
+  router.put('/:id', protect, updateValidators, handleValidation, async (req, res, next) => {
     try {
       const doc = await Model.findByIdAndUpdate(req.params.id, req.body, {
         new: true,
@@ -57,7 +60,7 @@ export function createCrudRouter(Model, { createValidators = [], updateValidator
     }
   });
 
-  router.delete('/:id', async (req, res, next) => {
+  router.delete('/:id', protect, async (req, res, next) => {
     try {
       const doc = await Model.findByIdAndDelete(req.params.id);
       if (!doc) return res.status(404).json({ error: 'Not found' });

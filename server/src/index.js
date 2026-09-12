@@ -9,6 +9,7 @@ import eventsRouter from './routes/events.js';
 import imagesRouter from './routes/images.js';
 import faqRouter from './routes/faq.js';
 import chatRouter from './routes/chat.js';
+import authRouter from './routes/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,7 @@ app.use('/api/events', eventsRouter);
 app.use('/api/images', imagesRouter);
 app.use('/api/faq', faqRouter);
 app.use('/api/chat', chatRouter);
+app.use('/api/auth', authRouter);
 
 app.use(errorHandler);
 

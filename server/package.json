@@ -8,6 +8,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "seed": "node src/seed.js",
+    "seed:admin": "node src/seedAdmin.js",
     "generate:images": "node scripts/generate-images.mjs",
     "test": "vitest run"
   },

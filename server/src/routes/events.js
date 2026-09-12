@@ -1,6 +1,7 @@
 import { body } from 'express-validator';
 import Event from '../models/Event.js';
 import { createCrudRouter } from './crudRouter.js';
+import { requireAdmin } from '../middleware/auth.js';
 
 const fields = [
   body('title').isString().trim().notEmpty(),
@@ -10,4 +11,8 @@ const fields = [
   body('imageId').optional().isMongoId(),
 ];
 
-export default createCrudRouter(Event, { createValidators: fields, updateValidators: fields });
+export default createCrudRouter(Event, {
+  createValidators: fields,
+  updateValidators: fields,
+  protect: [requireAdmin],
+});
