@@ -1,7 +1,8 @@
 # AI Smart Knowledge & Assistance Platform
 
 React + Vite frontend, Express + MongoDB backend, chatbot grounded on the
-knowledge base via retrieval and Qwen3-4B (self-hosted through Ollama).
+knowledge base via retrieval and Qwen3-4B-Instruct (self-hosted through
+Ollama).
 
 See [AI_Smart_Knowledge_Platform_Plan_v3.md](../AI_Smart_Knowledge_Platform_Plan_v3.md)
 for the full plan, timeline, and architecture.
@@ -19,8 +20,10 @@ cd ../client && npm install
 ```
 
 Fill in `server/.env` with your MongoDB Atlas URI and JWT secret. Install
-[Ollama](https://ollama.com) and run `ollama pull qwen3:4b` before working on
-the chatbot (Phase 4).
+[Ollama](https://ollama.com) and run `ollama pull qwen3:4b-instruct` before
+working on the chatbot (Phase 4) — the plain `qwen3:4b` tag has hybrid
+"thinking" on by default, which is too slow for interactive use on CPU;
+`-instruct` skips the reasoning chain entirely.
 
 ## Run
 

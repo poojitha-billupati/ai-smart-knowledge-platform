@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-/**
- * Runs `loader` and tracks status/data/error, matching the shape the real
- * API calls (Phase 2) will use — pages don't change when the loader swaps
- * from mock data to `fetch('/api/...')`.
- */
+/** Runs `loader` and tracks status/data/error for a page. */
 export function useAsync(loader, deps = []) {
   const [state, setState] = useState({ status: 'loading', data: null, error: null });
 
@@ -30,9 +26,4 @@ export function useAsync(loader, deps = []) {
   useEffect(() => run(), [run]);
 
   return { ...state, retry: run };
-}
-
-/** Simulates network latency for mock-JSON loaders in Phase 1. */
-export function delay(data, ms = 400) {
-  return new Promise((resolve) => setTimeout(() => resolve(data), ms));
 }

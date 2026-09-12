@@ -1,55 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { getInformation, getEvents, getFaq } from '../api/client';
-import { delay } from '../hooks/useAsync';
-
-const FALLBACK = "I don't have that information in my knowledge base.";
-
-const STOPWORDS = new Set([
-  'what', 'when', 'where', 'why', 'how', 'who', 'is', 'are', 'was', 'were',
-  'the', 'a', 'an', 'do', 'does', 'did', 'to', 'of', 'in', 'on', 'for',
-  'and', 'or', 'i', 'me', 'my', 'you', 'your', 'can', 'about', 'today',
-]);
-
-/**
- * Stand-in for the real retrieval + Qwen3-4B call (§4/§5 of the plan,
- * built in Phase 4). Same request/response shape as the future
- * POST /api/chat, so swapping this out is a one-line change. Scores
- * against data pulled from the live API (Phase 2), not static mocks.
- */
-function mockAskAssistant(question, { information, events, faq }) {
-  const q = question.toLowerCase();
-
-  const pool = [
-    ...information.map((r) => ({ type: 'INFO', id: r._id, title: r.title, text: r.description })),
-    ...events.map((r) => ({ type: 'EVENT', id: r._id, title: r.title, text: r.description })),
-    ...faq.map((r) => ({ type: 'FAQ', id: r._id, title: r.question, text: r.answer })),
-  ];
-
-  const queryWords = q.split(/\W+/).filter((w) => w.length > 2 && !STOPWORDS.has(w));
-
-  const scored = pool
-    .map((r) => {
-      const haystack = `${r.title} ${r.text}`.toLowerCase();
-      const hits = queryWords.filter((w) => haystack.includes(w)).length;
-      return { ...r, hits };
-    })
-    .filter((r) => r.hits > 0)
-    .sort((a, b) => b.hits - a.hits)
-    .slice(0, 3);
-
-  if (scored.length === 0) {
-    return delay({ answer: FALLBACK, sources: [] }, 600);
-  }
-
-  const best = scored[0];
-  return delay(
-    {
-      answer: `${best.text} (mock answer — Phase 4 wires this to Qwen3-4B via Ollama)`,
-      sources: scored.map((r) => ({ type: r.type, id: r.id, title: r.title })),
-    },
-    900,
-  );
-}
+import { useRef, useState } from 'react';
+import { askAssistant } from '../api/client';
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState([
@@ -62,13 +12,6 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const listRef = useRef(null);
-  const knowledgeRef = useRef(null);
-
-  useEffect(() => {
-    Promise.all([getInformation(), getEvents(), getFaq()]).then(([information, events, faq]) => {
-      knowledgeRef.current = { information, events, faq };
-    });
-  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -80,13 +23,13 @@ export default function AIAssistant() {
     setPending(true);
 
     try {
-      const knowledge = knowledgeRef.current ?? {
-        information: await getInformation(),
-        events: await getEvents(),
-        faq: await getFaq(),
-      };
-      const { answer, sources } = await mockAskAssistant(question, knowledge);
+      const { answer, sources } = await askAssistant(question);
       setMessages((prev) => [...prev, { role: 'assistant', answer, sources }]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', answer: err.message || 'Something went wrong.', sources: [] },
+      ]);
     } finally {
       setPending(false);
       requestAnimationFrame(() => {

@@ -15,3 +15,10 @@ export const getFaq = () => request('/faq');
 
 export const deleteRecord = (collection, id) =>
   request(`/${collection}/${id}`, { method: 'DELETE' });
+
+export const askAssistant = (question) =>
+  request('/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  });
