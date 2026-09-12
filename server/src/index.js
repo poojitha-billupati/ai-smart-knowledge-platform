@@ -37,6 +37,10 @@ const PORT = process.env.PORT || 5000;
 export async function start() {
   if (process.env.MONGO_URI) {
     await mongoose.connect(process.env.MONGO_URI);
+    // Indexes (incl. the $text indexes retrieval depends on) build
+    // asynchronously after connect — wait so the server never serves a
+    // chat request before they exist.
+    await Promise.all(Object.values(mongoose.models).map((m) => m.init()));
     console.log('MongoDB connected');
   } else {
     console.warn('MONGO_URI not set — skipping MongoDB connection');

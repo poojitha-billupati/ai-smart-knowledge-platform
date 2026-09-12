@@ -11,4 +11,10 @@ export default defineConfig({
       '/images': 'http://localhost:5000',
     },
   },
+  preview: {
+    proxy: {
+      '/api': 'http://localhost:5000',
+      '/images': 'http://localhost:5000',
+    },
+  },
 })

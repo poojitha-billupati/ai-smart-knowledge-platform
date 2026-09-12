@@ -1,0 +1,235 @@
+{
+  "info": {
+    "name": "AI Smart Knowledge Platform",
+    "description": "Manual/API test collection for the plan's §7 testing table. Set `baseUrl` (default http://localhost:5000) and run Auth > Login first to populate `token` for the protected requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "recordId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  pm.collectionVariables.set('token', body.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"change-me-too\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/auth/login (wrong password)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"wrong-password\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Information",
+      "item": [
+        {
+          "name": "GET /api/information",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/information" }
+        },
+        {
+          "name": "POST /api/information (requires auth)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('recordId', pm.response.json()._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/information",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test Record\",\n  \"description\": \"Created from the Postman collection.\",\n  \"category\": \"Testing\",\n  \"tags\": [\"postman\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/information (no token -> 401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/information",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should fail\",\n  \"description\": \"No token attached.\",\n  \"category\": \"Testing\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /api/information/:id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/information/{{recordId}}" }
+        },
+        {
+          "name": "PUT /api/information/:id",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/information/{{recordId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test Record (updated)\",\n  \"description\": \"Updated from the Postman collection.\",\n  \"category\": \"Testing\",\n  \"tags\": [\"postman\"]\n}"
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/information/:id",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{baseUrl}}/api/information/{{recordId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "GET /api/events",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/events" }
+        },
+        {
+          "name": "POST /api/events (requires auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test Event\",\n  \"date\": \"2026-12-15T10:00:00.000Z\",\n  \"location\": \"Main Hall\",\n  \"description\": \"Created from the Postman collection.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "FAQ",
+      "item": [
+        {
+          "name": "GET /api/faq",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/faq" }
+        },
+        {
+          "name": "POST /api/faq (requires auth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/faq",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Postman test question?\",\n  \"answer\": \"Postman test answer.\",\n  \"category\": \"Testing\",\n  \"keywords\": [\"postman\"]\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "item": [
+        {
+          "name": "GET /api/images",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/images" }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "POST /api/chat (matched question)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/chat",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"When does the library open?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/chat (no-match question)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/chat",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is the airspeed velocity of an unladen swallow?\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /api/chat (empty question -> 400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/chat",
+            "body": { "mode": "raw", "raw": "{\n  \"question\": \"\"\n}" }
+          }
+        }
+      ]
+    }
+  ]
+}
