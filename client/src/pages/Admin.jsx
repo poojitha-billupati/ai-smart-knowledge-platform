@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useAsync, delay } from '../hooks/useAsync';
+import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
-import information from '../mock/information.json';
-import events from '../mock/events.json';
-import faq from '../mock/faq.json';
+import { getInformation, getEvents, getFaq, deleteRecord } from '../api/client';
 
-function loadCounts() {
-  return delay({ information: information.length, events: events.length, faq: faq.length });
+async function loadDashboard() {
+  const [information, events, faq] = await Promise.all([getInformation(), getEvents(), getFaq()]);
+  return { information, events, faq };
 }
 
 function LoginForm({ onLogin }) {
@@ -66,8 +65,21 @@ function StatCard({ label, value }) {
   );
 }
 
-function RecordsTable({ title, rows, columns }) {
+function RecordsTable({ title, collection, rows, columns }) {
   const [items, setItems] = useState(rows);
+  const [deletingId, setDeletingId] = useState(null);
+
+  async function handleDelete(id) {
+    setDeletingId(id);
+    try {
+      await deleteRecord(collection, id);
+      setItems((prev) => prev.filter((r) => r._id !== id));
+    } catch {
+      // Central error handler already logged it server-side; leave the row in place.
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <div className="mt-6">
@@ -77,7 +89,7 @@ function RecordsTable({ title, rows, columns }) {
           type="button"
           className="rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           disabled
-          title="Wired to POST /api/... in Phase 5"
+          title="Add form wired up in Phase 5 alongside auth"
         >
           + Add
         </button>
@@ -108,10 +120,11 @@ function RecordsTable({ title, rows, columns }) {
                   <td className="px-3 py-2 text-right">
                     <button
                       type="button"
-                      onClick={() => setItems((prev) => prev.filter((r) => r._id !== row._id))}
-                      className="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+                      onClick={() => handleDelete(row._id)}
+                      disabled={deletingId === row._id}
+                      className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
                     >
-                      Delete
+                      {deletingId === row._id ? 'Deleting…' : 'Delete'}
                     </button>
                   </td>
                 </tr>
@@ -126,7 +139,7 @@ function RecordsTable({ title, rows, columns }) {
 
 export default function Admin() {
   const [admin, setAdmin] = useState(null);
-  const { status, data, error, retry } = useAsync(loadCounts, []);
+  const { status, data, error, retry } = useAsync(loadDashboard, []);
 
   if (!admin) {
     return <LoginForm onLogin={setAdmin} />;
@@ -152,14 +165,15 @@ export default function Admin() {
       {status === 'success' && (
         <>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard label="Information records" value={data.information} />
-            <StatCard label="Events" value={data.events} />
-            <StatCard label="FAQ entries" value={data.faq} />
+            <StatCard label="Information records" value={data.information.length} />
+            <StatCard label="Events" value={data.events.length} />
+            <StatCard label="FAQ entries" value={data.faq.length} />
           </div>
 
           <RecordsTable
             title="Information"
-            rows={information}
+            collection="information"
+            rows={data.information}
             columns={[
               { key: 'title', label: 'Title' },
               { key: 'category', label: 'Category' },
@@ -167,7 +181,8 @@ export default function Admin() {
           />
           <RecordsTable
             title="Events"
-            rows={events}
+            collection="events"
+            rows={data.events}
             columns={[
               { key: 'title', label: 'Title' },
               { key: 'location', label: 'Location' },

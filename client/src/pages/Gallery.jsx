@@ -1,18 +1,17 @@
 import { useMemo, useState } from 'react';
-import { useAsync, delay } from '../hooks/useAsync';
+import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
-import images from '../mock/images';
-
-function loadImages() {
-  return delay(images);
-}
+import { getImages } from '../api/client';
 
 export default function Gallery() {
-  const { status, data, error, retry } = useAsync(loadImages, []);
+  const { status, data, error, retry } = useAsync(getImages, []);
   const [category, setCategory] = useState('All');
 
-  const categories = useMemo(() => ['All', ...new Set(images.map((img) => img.category))], []);
+  const categories = useMemo(
+    () => ['All', ...new Set((data ?? []).map((img) => img.category))],
+    [data],
+  );
 
   const filtered = useMemo(() => {
     if (!data) return [];

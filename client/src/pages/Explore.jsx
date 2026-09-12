@@ -1,21 +1,17 @@
 import { useMemo, useState } from 'react';
-import { useAsync, delay } from '../hooks/useAsync';
+import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
-import information from '../mock/information.json';
-
-function loadInformation() {
-  return delay(information);
-}
+import { getInformation } from '../api/client';
 
 export default function Explore() {
-  const { status, data, error, retry } = useAsync(loadInformation, []);
+  const { status, data, error, retry } = useAsync(getInformation, []);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
 
   const categories = useMemo(
-    () => ['All', ...new Set(information.map((item) => item.category))],
-    [],
+    () => ['All', ...new Set((data ?? []).map((item) => item.category))],
+    [data],
   );
 
   const filtered = useMemo(() => {

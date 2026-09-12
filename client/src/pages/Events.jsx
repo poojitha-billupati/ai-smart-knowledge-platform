@@ -1,16 +1,14 @@
-import { useAsync, delay } from '../hooks/useAsync';
+import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
-import events from '../mock/events.json';
-import images from '../mock/images';
+import { getEvents, getImages } from '../api/client';
 
-function loadEvents() {
-  return delay([...events].sort((a, b) => new Date(a.date) - new Date(b.date)));
-}
-
-function imageFor(eventId) {
-  return images.find((img) => img.relatedType === 'event' && img.relatedId === eventId)
-    ?.imageUrl;
+async function loadEvents() {
+  const [events, images] = await Promise.all([getEvents(), getImages()]);
+  const imageById = new Map(images.map((img) => [img._id, img.imageUrl]));
+  return [...events]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .map((event) => ({ ...event, image: event.imageId ? imageById.get(event.imageId) : undefined }));
 }
 
 const dateFormatter = new Intl.DateTimeFormat('en-IN', {
@@ -43,7 +41,7 @@ export default function Events() {
               title={event.title}
               subtitle={`${dateFormatter.format(new Date(event.date))} · ${event.location}`}
               description={event.description}
-              image={imageFor(event._id)}
+              image={event.image}
             />
           ))}
         </div>

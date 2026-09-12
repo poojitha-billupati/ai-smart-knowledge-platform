@@ -1,16 +1,15 @@
 import { Link } from 'react-router-dom';
-import { useAsync, delay } from '../hooks/useAsync';
+import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState } from '../components/QueryState';
-import information from '../mock/information.json';
-import events from '../mock/events.json';
-import faq from '../mock/faq.json';
+import { getInformation, getEvents, getFaq } from '../api/client';
 
-function loadStats() {
-  return delay({
+async function loadStats() {
+  const [information, events, faq] = await Promise.all([getInformation(), getEvents(), getFaq()]);
+  return {
     information: information.length,
     events: events.length,
     faq: faq.length,
-  });
+  };
 }
 
 const tiles = [

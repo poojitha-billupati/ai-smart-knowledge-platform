@@ -1,7 +1,5 @@
-import { useRef, useState } from 'react';
-import information from '../mock/information.json';
-import events from '../mock/events.json';
-import faq from '../mock/faq.json';
+import { useEffect, useRef, useState } from 'react';
+import { getInformation, getEvents, getFaq } from '../api/client';
 import { delay } from '../hooks/useAsync';
 
 const FALLBACK = "I don't have that information in my knowledge base.";
@@ -15,9 +13,10 @@ const STOPWORDS = new Set([
 /**
  * Stand-in for the real retrieval + Qwen3-4B call (§4/§5 of the plan,
  * built in Phase 4). Same request/response shape as the future
- * POST /api/chat, so swapping this out is a one-line change.
+ * POST /api/chat, so swapping this out is a one-line change. Scores
+ * against data pulled from the live API (Phase 2), not static mocks.
  */
-function mockAskAssistant(question) {
+function mockAskAssistant(question, { information, events, faq }) {
   const q = question.toLowerCase();
 
   const pool = [
@@ -63,6 +62,13 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const listRef = useRef(null);
+  const knowledgeRef = useRef(null);
+
+  useEffect(() => {
+    Promise.all([getInformation(), getEvents(), getFaq()]).then(([information, events, faq]) => {
+      knowledgeRef.current = { information, events, faq };
+    });
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -74,7 +80,12 @@ export default function AIAssistant() {
     setPending(true);
 
     try {
-      const { answer, sources } = await mockAskAssistant(question);
+      const knowledge = knowledgeRef.current ?? {
+        information: await getInformation(),
+        events: await getEvents(),
+        faq: await getFaq(),
+      };
+      const { answer, sources } = await mockAskAssistant(question, knowledge);
       setMessages((prev) => [...prev, { role: 'assistant', answer, sources }]);
     } finally {
       setPending(false);
