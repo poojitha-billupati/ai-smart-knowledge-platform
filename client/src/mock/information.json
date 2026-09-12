@@ -1,0 +1,34 @@
+[
+  {
+    "_id": "info1",
+    "title": "Admission Process",
+    "description": "Admissions open every June through the online portal. Applicants submit transcripts, an entrance score, and a statement of purpose. Shortlisted candidates are called for counseling in July.",
+    "category": "Academics",
+    "tags": ["admission", "process", "counseling"],
+    "createdAt": "2026-06-01T00:00:00.000Z"
+  },
+  {
+    "_id": "info2",
+    "title": "Fee Structure",
+    "description": "Tuition is billed per semester. Hostel and mess fees are billed separately. A need-based scholarship covers up to 50% of tuition for eligible students.",
+    "category": "Finance",
+    "tags": ["fees", "scholarship", "tuition"],
+    "createdAt": "2026-06-05T00:00:00.000Z"
+  },
+  {
+    "_id": "info3",
+    "title": "Library Hours",
+    "description": "The central library is open 8am-10pm on weekdays and 9am-6pm on weekends. Reference sections require a valid student ID.",
+    "category": "Facilities",
+    "tags": ["library", "hours", "facilities"],
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  {
+    "_id": "info4",
+    "title": "Hostel Allotment",
+    "description": "Hostel rooms are allotted by seniority and distance from campus. First-year students are guaranteed a seat if they apply before the July deadline.",
+    "category": "Facilities",
+    "tags": ["hostel", "allotment", "housing"],
+    "createdAt": "2026-07-10T00:00:00.000Z"
+  }
+]

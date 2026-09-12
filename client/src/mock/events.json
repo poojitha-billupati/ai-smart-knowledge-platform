@@ -1,0 +1,29 @@
+[
+  {
+    "_id": "evt1",
+    "title": "AI & ML Workshop",
+    "date": "2026-10-14T10:00:00.000Z",
+    "location": "Main Auditorium",
+    "description": "Hands-on workshop covering the basics of machine learning, model training, and deployment. Open to all second-year and above students.",
+    "imageId": "img1",
+    "createdAt": "2026-09-01T00:00:00.000Z"
+  },
+  {
+    "_id": "evt2",
+    "title": "Annual Tech Fest — Innovate",
+    "date": "2026-11-05T09:00:00.000Z",
+    "location": "Campus Grounds",
+    "description": "Three-day tech fest with hackathons, robotics demos, and guest talks from industry speakers.",
+    "imageId": "img2",
+    "createdAt": "2026-09-10T00:00:00.000Z"
+  },
+  {
+    "_id": "evt3",
+    "title": "Career Fair",
+    "date": "2026-12-02T09:30:00.000Z",
+    "location": "Sports Complex",
+    "description": "Over 40 companies on campus for internship and placement interviews. Bring printed resumes.",
+    "imageId": "img3",
+    "createdAt": "2026-09-15T00:00:00.000Z"
+  }
+]

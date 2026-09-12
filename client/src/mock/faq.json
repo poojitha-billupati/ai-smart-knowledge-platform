@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "faq1",
+    "question": "What is the fee structure?",
+    "answer": "Tuition is billed per semester, with hostel and mess fees billed separately. Need-based scholarships cover up to 50% of tuition.",
+    "category": "Finance",
+    "keywords": ["fees", "scholarship", "tuition", "cost"]
+  },
+  {
+    "_id": "faq2",
+    "question": "How do I apply for a hostel room?",
+    "answer": "Apply through the student portal before the July deadline. Rooms are allotted by seniority and distance from campus; first-years are guaranteed a seat if they apply on time.",
+    "category": "Facilities",
+    "keywords": ["hostel", "housing", "room", "allotment"]
+  },
+  {
+    "_id": "faq3",
+    "question": "When does the library open?",
+    "answer": "The central library is open 8am-10pm on weekdays and 9am-6pm on weekends.",
+    "category": "Facilities",
+    "keywords": ["library", "hours", "timing"]
+  },
+  {
+    "_id": "faq4",
+    "question": "How do I register for the AI & ML Workshop?",
+    "answer": "Registration is open to all second-year and above students through the Events page. Seats are limited and filled on a first-come basis.",
+    "category": "Events",
+    "keywords": ["workshop", "AI", "ML", "registration"]
+  }
+]
