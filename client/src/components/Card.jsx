@@ -1,21 +1,33 @@
-export default function Card({ title, subtitle, description, image, footer }) {
+const rules = {
+  indigo: 'bg-accent',
+  marigold: 'bg-marigold',
+  terracotta: 'bg-terracotta',
+};
+
+export default function Card({ title, subtitle, description, image, footer, accent = 'indigo' }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <article className="group flex flex-col border border-rule bg-surface transition-colors hover:border-ink-faint">
+      <span className={`h-[3px] w-full ${rules[accent]}`} aria-hidden="true" />
       {image && (
-        <img src={image} alt="" className="h-40 w-full object-cover" loading="lazy" />
+        <img
+          src={image}
+          alt=""
+          className="h-44 w-full border-b border-rule object-cover object-top"
+          loading="lazy"
+        />
       )}
-      <div className="p-4">
-        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+      <div className="flex flex-1 flex-col p-4">
         {subtitle && (
-          <p className="mt-0.5 text-sm text-violet-600 dark:text-violet-400">{subtitle}</p>
-        )}
-        {description && (
-          <p className="mt-2 line-clamp-3 text-sm text-gray-600 dark:text-gray-400">
-            {description}
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            {subtitle}
           </p>
         )}
-        {footer && <div className="mt-3">{footer}</div>}
+        <h3 className="font-display text-lg leading-snug text-ink">{title}</h3>
+        {description && (
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-soft">{description}</p>
+        )}
+        {footer && <div className="mt-auto pt-3">{footer}</div>}
       </div>
-    </div>
+    </article>
   );
 }

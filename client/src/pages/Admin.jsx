@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import RecordForm from '../components/RecordForm';
+import PageHeader from '../components/PageHeader';
+import Icon, { Seal } from '../components/Icon';
 import {
   getInformation,
   getEvents,
@@ -82,6 +84,9 @@ const COLLECTIONS = {
   },
 };
 
+const inputClass =
+  'mt-1.5 w-full border border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
+
 function LoginForm({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState(null);
@@ -104,51 +109,76 @@ function LoginForm({ onLogin }) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto mt-10 max-w-sm rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-    >
-      <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Admin Login</h2>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        Single seeded admin account (§6).
-      </p>
-      <label className="mt-4 block text-sm">
-        <span className="text-gray-700 dark:text-gray-300">Email</span>
-        <input
-          type="email"
-          required
-          value={form.email}
-          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+    <form onSubmit={handleSubmit} className="rise mx-auto mt-8 max-w-sm border border-rule bg-surface">
+      <div className="relative overflow-hidden bg-band px-6 py-6 text-center">
+        <div
+          className="jaali pointer-events-none absolute inset-0 text-marigold opacity-15"
+          aria-hidden="true"
         />
-      </label>
-      <label className="mt-3 block text-sm">
-        <span className="text-gray-700 dark:text-gray-300">Password</span>
-        <input
-          type="password"
-          required
-          value={form.password}
-          onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
-        />
-      </label>
-      {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-      <button
-        type="submit"
-        disabled={submitting}
-        className="mt-5 w-full rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
-      >
-        {submitting ? 'Logging in…' : 'Log in'}
-      </button>
+        <Seal className="relative mx-auto h-10 w-10 text-marigold" />
+        <h2 className="relative mt-3 font-display text-2xl text-band-ink">Admin sign in</h2>
+        <p className="relative mt-1 text-xs text-band-dim">
+          Staff access for managing campus records
+        </p>
+      </div>
+
+      <div className="space-y-4 p-6">
+        <label className="block text-sm">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            Email
+          </span>
+          <input
+            type="email"
+            required
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            className={inputClass}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            Password
+          </span>
+          <input
+            type="password"
+            required
+            value={form.password}
+            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            className={inputClass}
+          />
+        </label>
+
+        {error && (
+          <p className="border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+        >
+          {submitting ? 'Signing in…' : 'Sign in'}
+        </button>
+      </div>
     </form>
   );
 }
 
-function StatCard({ label, value }) {
+const statRules = ['bg-terracotta', 'bg-accent', 'bg-marigold', 'bg-ink-faint'];
+
+function StatCard({ label, value, index }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
-      <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">{value}</p>
-      <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{label}</p>
+    <div className="relative border border-rule bg-surface p-5">
+      <span
+        className={`absolute inset-x-0 top-0 h-[3px] ${statRules[index % statRules.length]}`}
+        aria-hidden="true"
+      />
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+        {label}
+      </p>
+      <p className="mt-1.5 font-display text-4xl leading-none text-accent tabular-nums">{value}</p>
     </div>
   );
 }
@@ -181,45 +211,50 @@ function RecordsTable({ collection, rows, onChange }) {
   }
 
   return (
-    <div className="mt-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+    <section className="mt-9">
+      <div className="mb-3 flex items-center justify-between border-b border-rule pb-2.5">
+        <h3 className="font-display text-xl text-ink">{title}</h3>
         <button
           type="button"
           onClick={() => setFormState('new')}
-          className="rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          className="inline-flex items-center gap-1.5 border border-rule bg-surface px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
         >
-          + Add
+          <Icon name="plus" className="h-3.5 w-3.5" />
+          Add
         </button>
       </div>
+
       {rows.length === 0 ? (
-        <EmptyState message="No records." />
+        <EmptyState message={`No ${title.toLowerCase()} records yet.`} />
       ) : (
-        <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800">
+        <div className="overflow-x-auto border border-rule bg-surface">
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-gray-600 dark:bg-gray-900 dark:text-gray-400">
+            <thead className="bg-sunk">
               <tr>
                 {columns.map((c) => (
-                  <th key={c.key} className="px-3 py-2 font-medium">
+                  <th
+                    key={c.key}
+                    className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint"
+                  >
                     {c.label}
                   </th>
                 ))}
-                <th className="px-3 py-2" />
+                <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row._id} className="border-t border-gray-200 dark:border-gray-800">
+                <tr key={row._id} className="border-t border-rule-soft hover:bg-sunk">
                   {columns.map((c) => (
-                    <td key={c.key} className="max-w-xs truncate px-3 py-2">
+                    <td key={c.key} className="max-w-xs truncate px-4 py-2.5 text-ink">
                       {row[c.key]}
                     </td>
                   ))}
-                  <td className="whitespace-nowrap px-3 py-2 text-right">
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right">
                     <button
                       type="button"
                       onClick={() => setFormState(row)}
-                      className="text-xs font-medium text-violet-600 hover:underline dark:text-violet-400"
+                      className="text-xs font-semibold text-accent hover:underline"
                     >
                       Edit
                     </button>
@@ -227,7 +262,7 @@ function RecordsTable({ collection, rows, onChange }) {
                       type="button"
                       onClick={() => handleDelete(row._id)}
                       disabled={deletingId === row._id}
-                      className="ml-3 text-xs font-medium text-red-600 hover:underline disabled:opacity-50 dark:text-red-400"
+                      className="ml-4 text-xs font-semibold text-terracotta hover:underline disabled:opacity-50"
                     >
                       {deletingId === row._id ? 'Deleting…' : 'Delete'}
                     </button>
@@ -248,7 +283,7 @@ function RecordsTable({ collection, rows, onChange }) {
           onCancel={() => setFormState(null)}
         />
       )}
-    </div>
+    </section>
   );
 }
 
@@ -276,28 +311,35 @@ export default function Admin() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Admin</h1>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="text-sm text-gray-600 hover:underline dark:text-gray-400"
-        >
-          Log out ({admin.email})
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Staff only"
+        title="Admin"
+        aside={
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 border border-rule bg-surface px-3 py-1.5 text-xs text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
+          >
+            <Icon name="logout" className="h-3.5 w-3.5" />
+            Sign out · {admin.email}
+          </button>
+        }
+      >
+        Add, edit and remove the records that Explore, Events, Gallery and the assistant all read
+        from.
+      </PageHeader>
 
-      {status === 'loading' && <Loading label="Loading dashboard…" />}
+      {status === 'loading' && <Loading label="Loading records" />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load dashboard.'} onRetry={retry} />
       )}
       {status === 'success' && (
         <>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <StatCard label="Information records" value={data.information.length} />
-            <StatCard label="Events" value={data.events.length} />
-            <StatCard label="FAQ entries" value={data.faq.length} />
-            <StatCard label="Images" value={data.images.length} />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <StatCard label="Information" value={data.information.length} index={0} />
+            <StatCard label="Events" value={data.events.length} index={1} />
+            <StatCard label="FAQ entries" value={data.faq.length} index={2} />
+            <StatCard label="Images" value={data.images.length} index={3} />
           </div>
 
           <RecordsTable collection="information" rows={data.information} onChange={retry} />

@@ -8,7 +8,28 @@
       name="description"
       content="Campus knowledge platform with an AI assistant grounded in admissions, fees, facilities, and event data."
     />
+    <meta name="theme-color" content="#1e2a5e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Marcellus&family=Karla:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <title>AI Smart Knowledge & Assistance Platform</title>
+    <script>
+      // Applied before first paint so the theme never flashes.
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var dark = saved
+            ? saved === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* storage unavailable — fall back to light */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

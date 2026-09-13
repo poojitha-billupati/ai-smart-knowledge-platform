@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState } from '../components/QueryState';
+import PageHeader from '../components/PageHeader';
+import Icon from '../components/Icon';
 import { getInformation, getEvents, getFaq } from '../api/client';
 
 async function loadStats() {
@@ -13,9 +15,27 @@ async function loadStats() {
 }
 
 const tiles = [
-  { key: 'information', label: 'Knowledge records', to: '/explore' },
-  { key: 'events', label: 'Upcoming events', to: '/events' },
-  { key: 'faq', label: 'FAQ entries', to: '/explore' },
+  {
+    key: 'information',
+    label: 'Knowledge records',
+    note: 'Admissions, fees, facilities',
+    to: '/explore',
+    rule: 'bg-terracotta',
+  },
+  {
+    key: 'events',
+    label: 'Upcoming events',
+    note: 'Sorted soonest first',
+    to: '/events',
+    rule: 'bg-accent',
+  },
+  {
+    key: 'faq',
+    label: 'FAQ entries',
+    note: 'Common student questions',
+    to: '/explore',
+    rule: 'bg-marigold',
+  },
 ];
 
 export default function Dashboard() {
@@ -23,47 +43,69 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        A single place to browse campus information, events, and media — and to ask the AI
-        assistant anything grounded in this data.
-      </p>
+      <PageHeader eyebrow="Campus overview" title="Everything on campus, in one place">
+        Browse departments, facilities and events — or ask the assistant a question in plain
+        English and get an answer drawn only from these records.
+      </PageHeader>
 
-      {status === 'loading' && <Loading label="Loading stats…" />}
+      {status === 'loading' && <Loading label="Loading stats" />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load stats.'} onRetry={retry} />
       )}
       {status === 'success' && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rise grid grid-cols-1 border border-rule bg-surface sm:grid-cols-3">
           {tiles.map((tile) => (
             <Link
               key={tile.key}
               to={tile.to}
-              className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
+              className="group relative border-b border-rule p-6 transition-colors last:border-b-0 hover:bg-sunk sm:border-b-0 sm:border-l sm:first:border-l-0"
             >
-              <p className="text-3xl font-bold text-violet-600 dark:text-violet-400">
+              <span
+                className={`absolute inset-x-0 top-0 h-[3px] ${tile.rule}`}
+                aria-hidden="true"
+              />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                {tile.label}
+              </p>
+              <p className="mt-2 font-display text-5xl leading-none text-accent tabular-nums">
                 {data[tile.key]}
               </p>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{tile.label}</p>
+              <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-soft">
+                {tile.note}
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </p>
             </Link>
           ))}
         </div>
       )}
 
-      <div className="mt-8 rounded-lg border border-violet-200 bg-violet-50 p-5 dark:border-violet-900 dark:bg-violet-950/30">
-        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-          Ask the AI Assistant
-        </h2>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Questions are answered only from data in this platform, with sources shown.
-        </p>
-        <Link
-          to="/assistant"
-          className="mt-3 inline-block rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
-        >
-          Open AI Assistant
-        </Link>
-      </div>
+      <section className="relative mt-10 overflow-hidden bg-band px-7 py-8 text-band-ink">
+        <div
+          className="jaali pointer-events-none absolute inset-0 text-marigold opacity-15"
+          aria-hidden="true"
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-marigold">
+              Grounded answers
+            </p>
+            <h2 className="mt-2 max-w-xl font-display text-2xl leading-snug">
+              Ask the assistant anything about campus
+            </h2>
+            <p className="mt-2 max-w-xl text-sm text-band-dim">
+              Every reply is built from records in this platform, with the sources listed
+              underneath — so you can check where the answer came from.
+            </p>
+          </div>
+          <Link
+            to="/assistant"
+            className="inline-flex items-center gap-2 bg-marigold px-5 py-2.5 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90"
+          >
+            Open assistant
+            <Icon name="send" className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

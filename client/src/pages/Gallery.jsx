@@ -2,7 +2,10 @@ import { useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
+import PageHeader from '../components/PageHeader';
 import { getImages, assetUrl } from '../api/client';
+
+const accents = ['indigo', 'marigold', 'terracotta'];
 
 export default function Gallery() {
   const { status, data, error, retry } = useAsync(getImages, []);
@@ -20,21 +23,20 @@ export default function Gallery() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Gallery</h1>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <PageHeader eyebrow="Media" title="Gallery">
         Images linked to events and knowledge records — not static files.
-      </p>
+      </PageHeader>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mb-7 flex flex-wrap gap-2">
         {categories.map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => setCategory(c)}
-            className={`rounded-full px-3 py-1 text-sm ${
+            className={`border px-3.5 py-1.5 text-sm transition-colors ${
               category === c
-                ? 'bg-violet-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                ? 'border-accent bg-accent font-semibold text-band-ink'
+                : 'border-rule bg-surface text-ink-soft hover:border-ink-faint hover:text-ink'
             }`}
           >
             {c}
@@ -42,7 +44,7 @@ export default function Gallery() {
         ))}
       </div>
 
-      {status === 'loading' && <Loading label="Loading gallery…" />}
+      {status === 'loading' && <Loading label="Loading gallery" />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load images.'} onRetry={retry} />
       )}
@@ -50,13 +52,14 @@ export default function Gallery() {
         <EmptyState message="No images in this category yet." />
       )}
       {status === 'success' && filtered.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((img) => (
+        <div className="rise grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((img, i) => (
             <Card
               key={img._id}
               title={img.title}
-              subtitle={`Linked to ${img.relatedType} · ${img.relatedId}`}
+              subtitle={`Linked to ${img.relatedType}`}
               image={assetUrl(img.imageUrl)}
+              accent={accents[i % accents.length]}
             />
           ))}
         </div>

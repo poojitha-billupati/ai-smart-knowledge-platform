@@ -18,6 +18,9 @@ function toPayloadValue(field, value) {
   return value;
 }
 
+const inputClass =
+  'mt-1.5 w-full border border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
+
 /** Generic add/edit modal driven by a field-definition list (§9 Phase 5 CRUD). */
 export default function RecordForm({ title, fields, initialValues = {}, onSubmit, onCancel }) {
   const [values, setValues] = useState(() =>
@@ -43,24 +46,28 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-band/70 p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg dark:bg-gray-900"
+        className="w-full max-w-md border border-rule bg-surface shadow-xl"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+        <div className="border-b border-rule bg-band px-6 py-4">
+          <h3 className="font-display text-xl text-band-ink">{title}</h3>
+        </div>
 
-        <div className="mt-4 space-y-3">
+        <div className="space-y-4 p-6">
           {fields.map((f) => (
             <label key={f.key} className="block text-sm">
-              <span className="text-gray-700 dark:text-gray-300">{f.label}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+                {f.label}
+              </span>
               {f.type === 'textarea' ? (
                 <textarea
                   required={f.required}
                   rows={3}
                   value={values[f.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+                  className={inputClass}
                 />
               ) : (
                 <input
@@ -68,32 +75,34 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                   required={f.required}
                   value={values[f.key]}
                   onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+                  className={inputClass}
                 />
               )}
               {f.type === 'tags' && (
-                <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-500">
-                  Comma-separated
-                </span>
+                <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
               )}
             </label>
           ))}
+
+          {error && (
+            <p className="border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
+              {error}
+            </p>
+          )}
         </div>
 
-        {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t border-rule px-6 py-4">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="px-4 py-2 text-sm text-ink-soft transition-colors hover:text-ink"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-violet-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+            className="bg-marigold px-5 py-2 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             {submitting ? 'Saving…' : 'Save'}
           </button>

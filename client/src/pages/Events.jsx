@@ -1,6 +1,7 @@
 import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
+import PageHeader from '../components/PageHeader';
 import { getEvents, getImages, assetUrl } from '../api/client';
 
 async function loadEvents() {
@@ -16,32 +17,34 @@ const dateFormatter = new Intl.DateTimeFormat('en-IN', {
   timeStyle: 'short',
 });
 
+const accents = ['indigo', 'marigold', 'terracotta'];
+
 export default function Events() {
   const { status, data, error, retry } = useAsync(loadEvents, []);
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Events</h1>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      <PageHeader eyebrow="Calendar" title="Events">
         Upcoming campus events, soonest first.
-      </p>
+      </PageHeader>
 
-      {status === 'loading' && <Loading label="Loading events…" />}
+      {status === 'loading' && <Loading label="Loading events" />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load events.'} onRetry={retry} />
       )}
       {status === 'success' && data.length === 0 && (
-        <EmptyState message="No events scheduled." />
+        <EmptyState message="No events scheduled yet." />
       )}
       {status === 'success' && data.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((event) => (
+        <div className="rise grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {data.map((event, i) => (
             <Card
               key={event._id}
               title={event.title}
               subtitle={`${dateFormatter.format(new Date(event.date))} · ${event.location}`}
               description={event.description}
               image={event.image}
+              accent={accents[i % accents.length]}
             />
           ))}
         </div>

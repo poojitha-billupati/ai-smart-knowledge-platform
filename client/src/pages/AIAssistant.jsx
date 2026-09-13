@@ -1,5 +1,13 @@
 import { useRef, useState } from 'react';
 import { askAssistant } from '../api/client';
+import PageHeader from '../components/PageHeader';
+import Icon, { Seal } from '../components/Icon';
+
+const suggestions = [
+  'What are the library hours?',
+  'How do I apply for admission?',
+  'What events are coming up?',
+];
 
 export default function AIAssistant() {
   const [messages, setMessages] = useState([
@@ -13,9 +21,7 @@ export default function AIAssistant() {
   const [pending, setPending] = useState(false);
   const listRef = useRef(null);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const question = input.trim();
+  async function ask(question) {
     if (!question || pending) return;
 
     setMessages((prev) => [...prev, { role: 'user', text: question }]);
@@ -38,36 +44,42 @@ export default function AIAssistant() {
     }
   }
 
+  function handleSubmit(e) {
+    e.preventDefault();
+    ask(input.trim());
+  }
+
   return (
-    <div className="flex h-[70vh] flex-col">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">AI Assistant</h1>
-      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-        Answers are grounded only in this platform's data; sources are shown under each reply.
-      </p>
+    <div className="flex min-h-[70vh] flex-col">
+      <PageHeader eyebrow="Grounded answers" title="AI Assistant">
+        Replies are built only from records in this platform. Sources appear under each answer so
+        you can check where it came from.
+      </PageHeader>
 
       <div
         ref={listRef}
-        className="mt-4 flex-1 space-y-3 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/50"
+        className="flex-1 space-y-4 overflow-y-auto border border-rule bg-sunk p-5"
       >
         {messages.map((m, i) =>
           m.role === 'user' ? (
             <div key={i} className="flex justify-end">
-              <div className="max-w-[80%] rounded-lg bg-violet-600 px-3 py-2 text-sm text-white">
+              <p className="max-w-[80%] bg-band px-4 py-2.5 text-sm leading-relaxed text-band-ink">
                 {m.text}
-              </div>
+              </p>
             </div>
           ) : (
-            <div key={i} className="flex justify-start">
-              <div className="max-w-[80%] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-900">
-                <p className="text-gray-800 dark:text-gray-200">{m.answer}</p>
+            <div key={i} className="flex items-start gap-3">
+              <Seal className="mt-0.5 h-6 w-6 shrink-0 text-marigold" />
+              <div className="max-w-[80%] border-l-[3px] border-marigold bg-surface px-4 py-2.5">
+                <p className="text-sm leading-relaxed text-ink">{m.answer}</p>
                 {m.sources?.length > 0 && (
-                  <ul className="mt-2 flex flex-wrap gap-1.5">
+                  <ul className="mt-3 flex flex-wrap gap-1.5 border-t border-rule pt-2.5">
                     {m.sources.map((s) => (
                       <li
                         key={`${s.type}-${s.id}`}
-                        className="rounded bg-violet-100 px-1.5 py-0.5 text-xs text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                        className="bg-accent-wash px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-accent"
                       >
-                        [{s.type}] {s.title}
+                        {s.type} · {s.title}
                       </li>
                     ))}
                   </ul>
@@ -77,32 +89,47 @@ export default function AIAssistant() {
           ),
         )}
         {pending && (
-          <div className="flex justify-start">
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-              <span className="inline-flex gap-1">
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
-                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
-              </span>
-            </div>
+          <div className="flex items-center gap-3">
+            <Seal className="h-6 w-6 shrink-0 text-marigold" />
+            <span className="flex gap-1.5 border-l-[3px] border-marigold bg-surface px-4 py-3.5">
+              <span className="h-2 w-2 rotate-45 animate-pulse bg-terracotta" />
+              <span className="h-2 w-2 rotate-45 animate-pulse bg-accent [animation-delay:180ms]" />
+              <span className="h-2 w-2 rotate-45 animate-pulse bg-marigold [animation-delay:360ms]" />
+            </span>
           </div>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+      {messages.length === 1 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => ask(s)}
+              className="border border-rule bg-surface px-3 py-1.5 text-xs text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about admissions, fees, events…"
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+          className="flex-1 border border-rule bg-surface px-4 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
         />
         <button
           type="submit"
           disabled={pending || !input.trim()}
-          className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 bg-marigold px-5 py-2.5 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90 disabled:opacity-40"
         >
           Send
+          <Icon name="send" className="h-4 w-4" />
         </button>
       </form>
     </div>
