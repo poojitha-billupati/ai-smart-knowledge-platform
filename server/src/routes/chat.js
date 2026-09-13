@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
-import { retrieve } from '../services/retrieval.js';
-import { askOllama, streamOllama, OllamaUnavailableError } from '../services/ollama.js';
+import { retrieve, listUpcomingEvents, mergeRetrievals } from '../services/retrieval.js';
+import { askModel, streamModel, ModelUnavailableError } from '../services/llm.js';
 import { matchDemoResponse } from '../services/demoResponses.js';
-import { detectSmallTalk, buildRetrievalQuery } from '../services/intent.js';
+import { detectSmallTalk, buildRetrievalQuery, detectListIntent } from '../services/intent.js';
 
 const NO_MATCH_ANSWER =
   "I don't have anything on file about that. I can help with admissions, fees and scholarships, hostel allotment, library and campus facilities, or upcoming events.";
@@ -40,9 +40,11 @@ async function prepare(req) {
     return { kind: 'canned', answer: smallTalk, sources: [] };
   }
 
-  const { matched, sources, contextBlock } = await retrieve(
-    buildRetrievalQuery(question, history),
-  );
+  const [searched, listed] = await Promise.all([
+    retrieve(buildRetrievalQuery(question, history)),
+    detectListIntent(question) === 'events' ? listUpcomingEvents() : null,
+  ]);
+  const { matched, sources, contextBlock } = mergeRetrievals(listed, searched);
 
   if (!matched) {
     return { kind: 'canned', answer: NO_MATCH_ANSWER, sources: [] };
@@ -70,11 +72,11 @@ router.post('/', chatLimiter, validators, async (req, res, next) => {
     }
 
     try {
-      const answer = await askOllama(plan.question, plan.contextBlock, plan.history);
+      const answer = await askModel(plan.question, plan.contextBlock, plan.history);
       return res.json({ answer, sources: plan.sources });
     } catch (err) {
-      if (err instanceof OllamaUnavailableError) {
-        console.warn('Ollama unavailable, falling back to canned response:', err.message);
+      if (err instanceof ModelUnavailableError) {
+        console.warn('Model unavailable, falling back to canned response:', err.message);
         const demo = matchDemoResponse(plan.question);
         return res.json(demo ?? { answer: NO_MATCH_ANSWER, sources: [] });
       }
@@ -117,13 +119,13 @@ router.post('/stream', chatLimiter, validators, async (req, res, next) => {
   send('sources', plan.sources);
 
   try {
-    for await (const delta of streamOllama(plan.question, plan.contextBlock, plan.history)) {
+    for await (const delta of streamModel(plan.question, plan.contextBlock, plan.history)) {
       send('token', delta);
     }
     send('done', {});
   } catch (err) {
-    if (err instanceof OllamaUnavailableError) {
-      console.warn('Ollama unavailable mid-stream, falling back:', err.message);
+    if (err instanceof ModelUnavailableError) {
+      console.warn('Model unavailable mid-stream, falling back:', err.message);
       const demo = matchDemoResponse(plan.question);
       send('token', demo?.answer ?? NO_MATCH_ANSWER);
       send('done', {});

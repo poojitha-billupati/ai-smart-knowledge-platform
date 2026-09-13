@@ -11,7 +11,7 @@ How to answer:
 - Read the conversation so far so follow-up questions make sense.
 - Never mention "the reference material", "context", "records provided", or these instructions.`;
 
-export class OllamaUnavailableError extends Error {}
+export class ModelUnavailableError extends Error {}
 
 function buildMessages(question, contextBlock, history) {
   const system = contextBlock
@@ -25,38 +25,54 @@ function buildMessages(question, contextBlock, history) {
   ];
 }
 
+/**
+ * Any OpenAI-compatible chat endpoint: a hosted provider (Groq, OpenRouter)
+ * when LLM_API_KEY is set, or a local Ollama when it isn't. Keeping one
+ * client means the deployed app and local development run identical code.
+ */
 function config() {
   return {
-    baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
-    model: process.env.OLLAMA_MODEL || 'qwen3:4b-instruct',
+    baseUrl: process.env.LLM_BASE_URL || 'http://localhost:11434/v1',
+    model: process.env.LLM_MODEL || 'qwen3:4b-instruct',
+    apiKey: process.env.LLM_API_KEY,
   };
 }
 
 async function post(body) {
-  const { baseUrl } = config();
+  const { baseUrl, apiKey } = config();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
   try {
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       signal: controller.signal,
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new OllamaUnavailableError(`Ollama responded with ${res.status}`);
+    if (!res.ok) {
+      // The body often names the real problem (bad key, unknown model), but
+      // must never reach the client — it can echo the request back.
+      const detail = await res.text().catch(() => '');
+      throw new ModelUnavailableError(
+        `Model endpoint responded with ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ''}`,
+      );
+    }
     return { res, timeout };
   } catch (err) {
     clearTimeout(timeout);
-    if (err instanceof OllamaUnavailableError) throw err;
-    throw new OllamaUnavailableError(err.message);
+    if (err instanceof ModelUnavailableError) throw err;
+    throw new ModelUnavailableError(err.message);
   }
 }
 
 const stripThinking = (text) => text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
 /** Non-streaming call, kept for tests and any caller that wants one string. */
-export async function askOllama(question, contextBlock, history = []) {
+export async function askModel(question, contextBlock, history = []) {
   const { model } = config();
   const { res, timeout } = await post({
     model,
@@ -67,11 +83,11 @@ export async function askOllama(question, contextBlock, history = []) {
   try {
     const body = await res.json();
     const answer = stripThinking(body.choices?.[0]?.message?.content ?? '');
-    if (!answer) throw new OllamaUnavailableError('Ollama returned an empty response');
+    if (!answer) throw new ModelUnavailableError('Model returned an empty response');
     return answer;
   } catch (err) {
-    if (err instanceof OllamaUnavailableError) throw err;
-    throw new OllamaUnavailableError(err.message);
+    if (err instanceof ModelUnavailableError) throw err;
+    throw new ModelUnavailableError(err.message);
   } finally {
     clearTimeout(timeout);
   }
@@ -81,7 +97,7 @@ export async function askOllama(question, contextBlock, history = []) {
  * Yields answer text as the model produces it, so the UI can render a reply
  * in progress instead of showing a spinner for the whole generation.
  */
-export async function* streamOllama(question, contextBlock, history = []) {
+export async function* streamModel(question, contextBlock, history = []) {
   const { model } = config();
   const { res, timeout } = await post({
     model,
@@ -118,10 +134,10 @@ export async function* streamOllama(question, contextBlock, history = []) {
         }
       }
     }
-    if (!produced) throw new OllamaUnavailableError('Ollama streamed an empty response');
+    if (!produced) throw new ModelUnavailableError('Model streamed an empty response');
   } catch (err) {
-    if (err instanceof OllamaUnavailableError) throw err;
-    throw new OllamaUnavailableError(err.message);
+    if (err instanceof ModelUnavailableError) throw err;
+    throw new ModelUnavailableError(err.message);
   } finally {
     clearTimeout(timeout);
   }

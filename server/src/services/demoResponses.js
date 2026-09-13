@@ -1,6 +1,6 @@
 /**
- * Canned answers for DEMO_MODE (§8) — the only fallback once Ollama is
- * out of the picture. Also used as a last resort when a live Ollama
+ * Canned answers for DEMO_MODE (§8) — the only fallback once the model is
+ * out of the picture. Also used as a last resort when a live model
  * call fails (not running, model not pulled, timeout), so the demo
  * never shows a raw error. Keyed to the seeded dataset (§9 seed.js);
  * add more entries here as rehearsed demo questions are finalized.

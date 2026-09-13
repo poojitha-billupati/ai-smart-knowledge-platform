@@ -27,6 +27,17 @@ export function detectSmallTalk(question) {
   return null;
 }
 
+const EVENT_LISTING =
+  /\b(upcoming|coming up|next|list|all|any|what|which|show|tell)\b[\s\S]*\bevents?\b|\bevents?\b[\s\S]*\b(coming up|upcoming|calendar|schedule|happening|this (week|month))\b|^what'?s (on|happening|coming up)/i;
+
+/**
+ * Browse-style questions name a collection rather than its contents, so
+ * keyword retrieval alone answers them from whatever record shares a word.
+ */
+export function detectListIntent(question) {
+  return EVENT_LISTING.test(question) ? 'events' : null;
+}
+
 const FOLLOW_UP = /^(is|are|was|were|does|do|did|can|could|will|would|and|but|what about|how about|why|when|where|who|which|it|that|they|those|these|there|also|ok|okay|so)\b/i;
 const STOP_WORDS = new Set([
   'what', 'when', 'where', 'which', 'who', 'why', 'how', 'the', 'and', 'for', 'are', 'is',

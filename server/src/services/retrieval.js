@@ -52,6 +52,52 @@ async function tagFallback(question) {
   return [...info.map((d) => toResult('INFO', d, SCORE_THRESHOLD)), ...faqs.map((d) => toResult('FAQ', d, SCORE_THRESHOLD))];
 }
 
+const UPCOMING_LIMIT = 5;
+
+/**
+ * "What events are coming up?" asks for a collection, not a keyword match —
+ * $text scores it against whatever record happens to share a common word,
+ * so the calendar has to be fetched directly.
+ */
+export async function listUpcomingEvents() {
+  const docs = await Event.find({ date: { $gte: new Date() } })
+    .sort({ date: 1 })
+    .limit(UPCOMING_LIMIT)
+    .lean();
+
+  if (docs.length === 0) return { matched: false, sources: [], contextBlock: '' };
+
+  const results = docs.map((doc) => toResult('EVENT', doc, 1));
+  return {
+    matched: true,
+    sources: results.map((r) => ({ type: r.type, id: r.id, title: r.title })),
+    contextBlock: buildContextBlock(results),
+  };
+}
+
+/** Combines retrieval passes, keeping the first citation of each record. */
+export function mergeRetrievals(...parts) {
+  const matched = parts.filter((p) => p?.matched);
+  if (matched.length === 0) return { matched: false, sources: [], contextBlock: '' };
+
+  const seen = new Set();
+  const sources = [];
+  for (const part of matched) {
+    for (const source of part.sources) {
+      const key = `${source.type}-${source.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      sources.push(source);
+    }
+  }
+
+  return {
+    matched: true,
+    sources,
+    contextBlock: matched.map((p) => p.contextBlock).join('\n'),
+  };
+}
+
 function buildContextBlock(results) {
   return results.map((r) => `[${r.type}] ${r.type === 'FAQ' ? `Q: ${r.title} A: ${r.text}` : r.text}`).join('\n');
 }
