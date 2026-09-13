@@ -45,8 +45,52 @@ export const updateRecord = (collection, id, data) =>
 export const deleteRecord = (collection, id) =>
   request(`/${collection}/${id}`, { method: 'DELETE' });
 
-export const askAssistant = (question) =>
-  request('/chat', { method: 'POST', ...jsonBody({ question }) });
+export const askAssistant = (question, history = []) =>
+  request('/chat', { method: 'POST', ...jsonBody({ question, history }) });
+
+/**
+ * Streams an answer token by token over SSE, calling onSources once up front
+ * and onToken for each fragment. Falls back to the buffered /chat endpoint if
+ * the stream can't be opened.
+ */
+export async function streamAssistant(question, history, { onSources, onToken, signal }) {
+  const res = await fetch(`${API_BASE}/api/chat/stream`, {
+    method: 'POST',
+    signal,
+    ...jsonBody({ question, history }),
+  });
+
+  if (!res.ok || !res.body) {
+    const { answer, sources } = await askAssistant(question, history);
+    onSources?.(sources ?? []);
+    onToken?.(answer);
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const frames = buffer.split('\n\n');
+    buffer = frames.pop() ?? '';
+
+    for (const frame of frames) {
+      const event = frame.match(/^event: (.+)$/m)?.[1];
+      const raw = frame.match(/^data: ([\s\S]*)$/m)?.[1];
+      if (!event || raw === undefined) continue;
+
+      const data = JSON.parse(raw);
+      if (event === 'sources') onSources?.(data);
+      else if (event === 'token') onToken?.(data);
+      else if (event === 'error') throw new Error(data.message);
+    }
+  }
+}
 
 export const login = (email, password) =>
   request('/auth/login', { method: 'POST', ...jsonBody({ email, password }) });

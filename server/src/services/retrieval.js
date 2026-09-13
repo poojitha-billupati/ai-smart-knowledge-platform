@@ -84,9 +84,15 @@ export async function retrieve(question) {
     return { matched: false, sources: [], contextBlock: '' };
   }
 
+  // Everything retrieved is worth showing the model, but citing all of it
+  // lists records that merely shared a common word. Only surface those
+  // scoring near the best match.
+  const cutoff = top[0].score * 0.6;
+  const cited = top.filter((r) => r.score >= cutoff).slice(0, 3);
+
   return {
     matched: true,
-    sources: top.map((r) => ({ type: r.type, id: r.id, title: r.title })),
+    sources: cited.map((r) => ({ type: r.type, id: r.id, title: r.title })),
     contextBlock: buildContextBlock(top),
   };
 }

@@ -2,10 +2,14 @@ import { Router } from 'express';
 import { body, validationResult } from 'express-validator';
 import rateLimit from 'express-rate-limit';
 import { retrieve } from '../services/retrieval.js';
-import { askOllama, OllamaUnavailableError } from '../services/ollama.js';
+import { askOllama, streamOllama, OllamaUnavailableError } from '../services/ollama.js';
 import { matchDemoResponse } from '../services/demoResponses.js';
+import { detectSmallTalk, buildRetrievalQuery } from '../services/intent.js';
 
-const FALLBACK_ANSWER = "I don't have that information in my knowledge base.";
+const NO_MATCH_ANSWER =
+  "I don't have anything on file about that. I can help with admissions, fees and scholarships, hostel allotment, library and campus facilities, or upcoming events.";
+
+const HISTORY_TURNS = 6;
 
 const chatLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -14,47 +18,121 @@ const chatLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const validators = [
+  body('question').isString().trim().isLength({ min: 1, max: 500 }),
+  body('history').optional().isArray({ max: 20 }),
+  body('history.*.role').optional().isIn(['user', 'assistant']),
+  body('history.*.content').optional().isString().trim().isLength({ min: 1, max: 2000 }),
+];
+
+/** Shared pre-flight: validation, small talk, retrieval. */
+async function prepare(req) {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return { kind: 'invalid', details: errors.array() };
+  }
+
+  const { question } = req.body;
+  const history = (req.body.history ?? []).slice(-HISTORY_TURNS);
+
+  const smallTalk = detectSmallTalk(question);
+  if (smallTalk) {
+    return { kind: 'canned', answer: smallTalk, sources: [] };
+  }
+
+  const { matched, sources, contextBlock } = await retrieve(
+    buildRetrievalQuery(question, history),
+  );
+
+  if (!matched) {
+    return { kind: 'canned', answer: NO_MATCH_ANSWER, sources: [] };
+  }
+
+  if (process.env.DEMO_MODE === 'true') {
+    const demo = matchDemoResponse(question);
+    return { kind: 'canned', ...(demo ?? { answer: NO_MATCH_ANSWER, sources: [] }) };
+  }
+
+  return { kind: 'generate', question, history, sources, contextBlock };
+}
+
 const router = Router();
 
-router.post(
-  '/',
-  chatLimiter,
-  body('question').isString().trim().isLength({ min: 1, max: 500 }),
-  async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: 'Validation failed', details: errors.array() });
-    }
+router.post('/', chatLimiter, validators, async (req, res, next) => {
+  try {
+    const plan = await prepare(req);
 
-    const { question } = req.body;
+    if (plan.kind === 'invalid') {
+      return res.status(400).json({ error: 'Validation failed', details: plan.details });
+    }
+    if (plan.kind === 'canned') {
+      return res.json({ answer: plan.answer, sources: plan.sources });
+    }
 
     try {
-      const { matched, sources, contextBlock } = await retrieve(question);
-
-      if (!matched) {
-        return res.json({ answer: FALLBACK_ANSWER, sources: [] });
-      }
-
-      if (process.env.DEMO_MODE === 'true') {
-        const demo = matchDemoResponse(question);
-        return res.json(demo ?? { answer: FALLBACK_ANSWER, sources: [] });
-      }
-
-      try {
-        const answer = await askOllama(question, contextBlock);
-        return res.json({ answer, sources });
-      } catch (err) {
-        if (err instanceof OllamaUnavailableError) {
-          console.warn('Ollama unavailable, falling back to canned response:', err.message);
-          const demo = matchDemoResponse(question);
-          return res.json(demo ?? { answer: FALLBACK_ANSWER, sources: [] });
-        }
-        throw err;
-      }
+      const answer = await askOllama(plan.question, plan.contextBlock, plan.history);
+      return res.json({ answer, sources: plan.sources });
     } catch (err) {
-      next(err);
+      if (err instanceof OllamaUnavailableError) {
+        console.warn('Ollama unavailable, falling back to canned response:', err.message);
+        const demo = matchDemoResponse(plan.question);
+        return res.json(demo ?? { answer: NO_MATCH_ANSWER, sources: [] });
+      }
+      throw err;
     }
-  },
-);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/stream', chatLimiter, validators, async (req, res, next) => {
+  let plan;
+  try {
+    plan = await prepare(req);
+  } catch (err) {
+    return next(err);
+  }
+
+  if (plan.kind === 'invalid') {
+    return res.status(400).json({ error: 'Validation failed', details: plan.details });
+  }
+
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  res.flushHeaders();
+
+  const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+  if (plan.kind === 'canned') {
+    send('sources', plan.sources);
+    send('token', plan.answer);
+    send('done', {});
+    return res.end();
+  }
+
+  send('sources', plan.sources);
+
+  try {
+    for await (const delta of streamOllama(plan.question, plan.contextBlock, plan.history)) {
+      send('token', delta);
+    }
+    send('done', {});
+  } catch (err) {
+    if (err instanceof OllamaUnavailableError) {
+      console.warn('Ollama unavailable mid-stream, falling back:', err.message);
+      const demo = matchDemoResponse(plan.question);
+      send('token', demo?.answer ?? NO_MATCH_ANSWER);
+      send('done', {});
+    } else {
+      send('error', { message: 'Something went wrong generating that answer.' });
+    }
+  }
+
+  res.end();
+});
 
 export default router;
