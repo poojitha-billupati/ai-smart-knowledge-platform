@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
-import { getImages } from '../api/client';
+import { getImages, assetUrl } from '../api/client';
 
 export default function Gallery() {
   const { status, data, error, retry } = useAsync(getImages, []);
@@ -56,7 +56,7 @@ export default function Gallery() {
               key={img._id}
               title={img.title}
               subtitle={`Linked to ${img.relatedType} · ${img.relatedId}`}
-              image={img.imageUrl}
+              image={assetUrl(img.imageUrl)}
             />
           ))}
         </div>

@@ -1,11 +1,11 @@
 import { useAsync } from '../hooks/useAsync';
 import { Loading, ErrorState, EmptyState } from '../components/QueryState';
 import Card from '../components/Card';
-import { getEvents, getImages } from '../api/client';
+import { getEvents, getImages, assetUrl } from '../api/client';
 
 async function loadEvents() {
   const [events, images] = await Promise.all([getEvents(), getImages()]);
-  const imageById = new Map(images.map((img) => [img._id, img.imageUrl]));
+  const imageById = new Map(images.map((img) => [img._id, assetUrl(img.imageUrl)]));
   return [...events]
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .map((event) => ({ ...event, image: event.imageId ? imageById.get(event.imageId) : undefined }));

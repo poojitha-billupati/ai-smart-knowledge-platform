@@ -1,15 +1,24 @@
 const TOKEN_KEY = 'auth_token';
 
+// In dev, Vite proxies /api and /images to the local server, so a relative
+// path works. In production the client (Vercel) and server (Render) are on
+// different origins, so VITE_API_BASE_URL points the client at the deployed
+// backend explicitly.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+
+/** Resolves a server-relative path (e.g. an image's "/images/x.webp") against the API origin. */
+export const assetUrl = (path) => (path?.startsWith('/') ? `${API_BASE}${path}` : path);
 
 async function request(path, options = {}) {
   const token = getToken();
   const headers = { ...options.headers };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`/api${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}/api${path}`, { ...options, headers });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed: ${res.status}`);
