@@ -57,8 +57,17 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitting(true);
     setError(null);
+
+    // The image field no longer has a native <input required> to lean on
+    // (it's upload-only now), so its own required-ness needs an explicit check.
+    const missingImage = fields.find((f) => f.key === 'imageUrl' && f.required && !values.imageUrl);
+    if (missingImage) {
+      setError('Upload an image before saving.');
+      return;
+    }
+
+    setSubmitting(true);
     try {
       const payload = Object.fromEntries(
         fields.map((f) => [f.key, toPayloadValue(f, values[f.key])]),
@@ -82,19 +91,16 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
         </div>
 
         <div className="max-h-[65vh] space-y-4 overflow-y-auto p-6">
-          {fields.map((f) => (
-            <div key={f.key} className="block text-sm">
-              <label
-                htmlFor={f.key}
-                className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint"
-              >
-                {f.key === 'imageUrl' ? 'Image' : f.label}
-              </label>
-              {f.key === 'imageUrl' && (
+          {fields.map((f) =>
+            f.key === 'imageUrl' ? (
+              <div key={f.key} className="block text-sm">
+                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
+                  Image
+                </span>
                 <div className="mt-1.5">
                   <label className="flex w-fit cursor-pointer items-center gap-2 rounded-full bg-marigold px-4 py-2 text-sm font-bold text-marigold-ink transition-all duration-200 hover:opacity-90 active:scale-95">
                     <Icon name="plus" className="h-3.5 w-3.5" />
-                    {uploading ? 'Uploading…' : 'Upload from your computer'}
+                    {uploading ? 'Uploading…' : values.imageUrl ? 'Replace photo' : 'Upload a photo'}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
@@ -107,77 +113,78 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                     <span className="mt-1.5 block text-xs text-terracotta">{uploadError}</span>
                   )}
                   <span className="mt-2 block text-xs text-ink-faint">
-                    Recommended — works with any photo on your device. Pasting a link below only
-                    works for a link to the image file itself; most sites (including Google
-                    Images/Lens results and gallery pages) block that and it will fail.
+                    JPEG, PNG, WebP or GIF, up to 8MB — stored directly on the server, so it always
+                    displays.
                   </span>
-                  <span className="mb-1 mt-3 block text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
-                    Or paste a direct image link
-                  </span>
-                </div>
-              )}
-              {f.type === 'textarea' ? (
-                <textarea
-                  id={f.key}
-                  required={f.required}
-                  rows={3}
-                  value={values[f.key]}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  className={inputClass}
-                />
-              ) : f.type === 'select' ? (
-                <select
-                  id={f.key}
-                  required={f.required}
-                  value={values[f.key]}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                  className={inputClass}
-                >
-                  {(typeof f.options === 'function' ? f.options(values) : f.options ?? []).map(
-                    (opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ),
-                  )}
-                </select>
-              ) : (
-                <input
-                  id={f.key}
-                  type={f.type === 'datetime' ? 'datetime-local' : f.type === 'url' ? 'url' : 'text'}
-                  required={f.required}
-                  placeholder={f.type === 'url' ? 'https://…' : undefined}
-                  value={values[f.key]}
-                  onChange={(e) => {
-                    setValues((v) => ({ ...v, [f.key]: e.target.value }));
-                    if (f.key === 'imageUrl') setPreviewBroken(false);
-                  }}
-                  className={inputClass}
-                />
-              )}
-              {f.type === 'tags' && !f.hint && (
-                <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
-              )}
-              {f.hint && <span className="mt-1 block text-xs text-ink-faint">{f.hint}</span>}
-              {f.key === 'imageUrl' && values.imageUrl && (
-                <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">
-                  {previewBroken ? (
-                    <span className="flex h-28 flex-col items-center justify-center gap-1 px-4 text-center text-xs text-ink-faint">
-                      <span>That link won't display here.</span>
-                      <span>Most sites block outside pages from showing their images directly — use Upload above instead.</span>
+                  {values.imageUrl && (
+                    <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">
+                      {previewBroken ? (
+                        <span className="flex h-28 items-center justify-center px-4 text-center text-xs text-ink-faint">
+                          Couldn't load the uploaded image — try uploading again.
+                        </span>
+                      ) : (
+                        <img
+                          src={assetUrl(values.imageUrl)}
+                          alt=""
+                          className="h-28 w-full object-cover object-top"
+                          onError={() => setPreviewBroken(true)}
+                        />
+                      )}
                     </span>
-                  ) : (
-                    <img
-                      src={assetUrl(values.imageUrl)}
-                      alt=""
-                      className="h-28 w-full object-cover object-top"
-                      onError={() => setPreviewBroken(true)}
-                    />
                   )}
-                </span>
-              )}
-            </div>
-          ))}
+                </div>
+              </div>
+            ) : (
+              <div key={f.key} className="block text-sm">
+                <label
+                  htmlFor={f.key}
+                  className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint"
+                >
+                  {f.label}
+                </label>
+                {f.type === 'textarea' ? (
+                  <textarea
+                    id={f.key}
+                    required={f.required}
+                    rows={3}
+                    value={values[f.key]}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className={inputClass}
+                  />
+                ) : f.type === 'select' ? (
+                  <select
+                    id={f.key}
+                    required={f.required}
+                    value={values[f.key]}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className={inputClass}
+                  >
+                    {(typeof f.options === 'function' ? f.options(values) : f.options ?? []).map(
+                      (opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                ) : (
+                  <input
+                    id={f.key}
+                    type={f.type === 'datetime' ? 'datetime-local' : f.type === 'url' ? 'url' : 'text'}
+                    required={f.required}
+                    placeholder={f.type === 'url' ? 'https://…' : undefined}
+                    value={values[f.key]}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className={inputClass}
+                  />
+                )}
+                {f.type === 'tags' && !f.hint && (
+                  <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
+                )}
+                {f.hint && <span className="mt-1 block text-xs text-ink-faint">{f.hint}</span>}
+              </div>
+            ),
+          )}
 
           {error && (
             <p className="rounded-xl border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
