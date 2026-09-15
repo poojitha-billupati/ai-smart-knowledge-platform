@@ -79,7 +79,12 @@ function keywords(text) {
  */
 export function buildRetrievalQuery(question, history = []) {
   const own = keywords(question);
-  const looksLikeFollowUp = own.length <= 2 || FOLLOW_UP.test(question.trim());
+  // A pronoun/auxiliary opener ("is it...", "what about...") reliably signals
+  // dependency on the prior turn. A bare keyword count does not: a fresh,
+  // well-formed question routinely has only one or two content words (e.g.
+  // "How do I apply for admission?" -> ['apply', 'admission']) and treating
+  // that as a follow-up pollutes the search with the previous topic's terms.
+  const looksLikeFollowUp = own.length === 0 || FOLLOW_UP.test(question.trim());
   if (!looksLikeFollowUp || history.length === 0) return question;
 
   const priorUser = [...history].reverse().find((m) => m.role === 'user');

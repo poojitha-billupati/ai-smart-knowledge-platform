@@ -107,6 +107,30 @@ describe('POST /api/chat', () => {
     expect(askModel).toHaveBeenCalledTimes(1);
   });
 
+  it('a fresh, unrelated question is not treated as a follow-up just for having few keywords', async () => {
+    await Information.create({
+      title: 'Admission Process',
+      description: 'Admissions open every June through the online portal.',
+      category: 'Academics',
+      tags: ['admission', 'apply'],
+    });
+    askModel.mockResolvedValueOnce('Admissions open every June.');
+
+    const res = await request(app)
+      .post('/api/chat')
+      .send({
+        question: 'How do I apply for admission?',
+        history: [
+          { role: 'user', content: 'What are the library hours?' },
+          { role: 'assistant', content: 'Open 8am-10pm on weekdays.' },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.sources.some((s) => s.title === 'Admission Process')).toBe(true);
+    expect(res.body.sources.some((s) => s.title === 'Library Hours')).toBe(false);
+  });
+
   it('"what events are coming up?" cites the calendar, not a keyword match', async () => {
     await Event.create({
       title: 'Career Fair',
