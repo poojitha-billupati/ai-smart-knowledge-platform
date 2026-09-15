@@ -9,6 +9,10 @@ const fields = [
   body('location').isString().trim().notEmpty(),
   body('description').isString().trim().notEmpty(),
   body('imageId').optional().isMongoId(),
+  body('registrationLink')
+    .optional({ checkFalsy: true })
+    .isURL({ protocols: ['http', 'https'], require_protocol: true })
+    .withMessage('Registration link must be a full http(s) URL'),
 ];
 
 export default createCrudRouter(Event, {

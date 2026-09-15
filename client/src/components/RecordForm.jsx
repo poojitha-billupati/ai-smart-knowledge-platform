@@ -73,8 +73,9 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                 />
               ) : (
                 <input
-                  type={f.type === 'datetime' ? 'datetime-local' : 'text'}
+                  type={f.type === 'datetime' ? 'datetime-local' : f.type === 'url' ? 'url' : 'text'}
                   required={f.required}
+                  placeholder={f.type === 'url' ? 'https://…' : undefined}
                   value={values[f.key]}
                   onChange={(e) => {
                     setValues((v) => ({ ...v, [f.key]: e.target.value }));
@@ -85,6 +86,11 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
               )}
               {f.type === 'tags' && (
                 <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
+              )}
+              {f.type === 'url' && (
+                <span className="mt-1 block text-xs text-ink-faint">
+                  Where students go to register — shown as a button on the event
+                </span>
               )}
               {f.key === 'imageUrl' && values.imageUrl && (
                 <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">

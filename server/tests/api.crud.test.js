@@ -124,6 +124,47 @@ describe.each(CASES)('CRUD: $path', ({ path, valid, invalid }) => {
   });
 });
 
+describe('POST /api/events registrationLink', () => {
+  beforeAll(async () => {
+    token = await createAdminToken(app);
+  });
+
+  const base = {
+    title: 'Orientation',
+    date: '2026-08-01T09:00:00.000Z',
+    location: 'Auditorium',
+    description: 'Welcome session for new students.',
+  };
+
+  it('accepts a valid http(s) URL and stores it', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...base, registrationLink: 'https://forms.example.com/orientation' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.registrationLink).toBe('https://forms.example.com/orientation');
+  });
+
+  it('rejects a non-URL value (400)', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...base, registrationLink: 'not a link' });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('is optional — omitting it still creates the event', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send(base);
+
+    expect(res.status).toBe(201);
+  });
+});
+
 describe('GET /api/health', () => {
   it('returns ok', async () => {
     const res = await request(app).get('/api/health');

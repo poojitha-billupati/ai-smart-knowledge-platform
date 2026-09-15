@@ -6,6 +6,7 @@ const eventSchema = new mongoose.Schema({
   location: { type: String, required: true, trim: true },
   description: { type: String, required: true },
   imageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
+  registrationLink: { type: String, trim: true },
   createdAt: { type: Date, default: Date.now },
 });
 

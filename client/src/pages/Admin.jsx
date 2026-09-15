@@ -56,6 +56,7 @@ const COLLECTIONS = {
       { key: 'date', label: 'Date', type: 'datetime', required: true },
       { key: 'location', label: 'Location', required: true },
       { key: 'description', label: 'Description', type: 'textarea', required: true },
+      { key: 'registrationLink', label: 'Registration link', type: 'url' },
     ],
   },
   faq: {

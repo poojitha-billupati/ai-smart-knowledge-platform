@@ -17,6 +17,9 @@ const paths = {
   copy: 'M9 9h11v11H9V9Zm-4 6V4h11v2',
   check: 'M5 13l4.5 4.5L19 8',
   chevron: 'M6 9l6 6 6-6',
+  externalLink: 'M14 4h6v6M20 4l-9 9M19 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
+  calendar: 'M4 6h16v15H4V6Zm0 5h16M8 3v5m8-5v5',
+  pin: 'M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Zm0-8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
 };
 
 export default function Icon({ name, className = 'h-4 w-4', strokeWidth = 1.6 }) {
