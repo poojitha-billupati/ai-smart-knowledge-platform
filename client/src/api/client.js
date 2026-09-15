@@ -94,3 +94,22 @@ export async function streamAssistant(question, history, { onMeta, onToken, sign
 
 export const login = (email, password) =>
   request('/auth/login', { method: 'POST', ...jsonBody({ email, password }) });
+
+/** Uploads an image file to the server's own storage; resolves to its new /images/... path. */
+export async function uploadImage(file) {
+  const token = getToken();
+  const body = new FormData();
+  body.append('image', file);
+
+  // No Content-Type header here on purpose — the browser sets it (with the
+  // multipart boundary) itself, only when it doesn't see one already set.
+  const res = await fetch(`${API_BASE}/api/uploads`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body,
+  });
+
+  const responseBody = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(responseBody.error || `Upload failed: ${res.status}`);
+  return responseBody.imageUrl;
+}

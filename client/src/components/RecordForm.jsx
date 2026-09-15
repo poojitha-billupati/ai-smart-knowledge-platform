@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { assetUrl } from '../api/client';
+import { assetUrl, uploadImage } from '../api/client';
+import Icon from './Icon';
 
 function toFormValue(field, value) {
   if (value == null) return '';
@@ -34,6 +35,25 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [previewBroken, setPreviewBroken] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // let the same file be picked again after an error
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const imageUrl = await uploadImage(file);
+      setValues((v) => ({ ...v, imageUrl }));
+      setPreviewBroken(false);
+    } catch (err) {
+      setUploadError(err.message || 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -107,21 +127,43 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                 <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
               )}
               {f.hint && <span className="mt-1 block text-xs text-ink-faint">{f.hint}</span>}
-              {f.key === 'imageUrl' && values.imageUrl && (
-                <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">
-                  {previewBroken ? (
-                    <span className="flex h-28 items-center justify-center text-xs text-ink-faint">
-                      Image not found yet — check the path once saved
-                    </span>
-                  ) : (
-                    <img
-                      src={assetUrl(values.imageUrl)}
-                      alt=""
-                      className="h-28 w-full object-cover object-top"
-                      onError={() => setPreviewBroken(true)}
+              {f.key === 'imageUrl' && (
+                <>
+                  <span className="mt-1 block text-xs text-ink-faint">
+                    Must be a direct link to the image file itself (ending in .jpg, .png, .webp…) —
+                    not a link to a webpage that merely shows the image.
+                  </span>
+                  <label className="mt-2 flex w-fit cursor-pointer items-center gap-2 rounded-full bg-sunk px-3.5 py-1.5 text-xs font-bold text-ink-soft transition-colors hover:text-ink">
+                    <Icon name="plus" className="h-3 w-3" />
+                    {uploading ? 'Uploading…' : 'Upload from your computer'}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      disabled={uploading}
+                      onChange={handleFileChange}
+                      className="sr-only"
                     />
+                  </label>
+                  {uploadError && (
+                    <span className="mt-1.5 block text-xs text-terracotta">{uploadError}</span>
                   )}
-                </span>
+                  {values.imageUrl && (
+                    <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">
+                      {previewBroken ? (
+                        <span className="flex h-28 items-center justify-center text-xs text-ink-faint">
+                          Image not found yet — check the path once saved
+                        </span>
+                      ) : (
+                        <img
+                          src={assetUrl(values.imageUrl)}
+                          alt=""
+                          className="h-28 w-full object-cover object-top"
+                          onError={() => setPreviewBroken(true)}
+                        />
+                      )}
+                    </span>
+                  )}
+                </>
               )}
             </label>
           ))}
