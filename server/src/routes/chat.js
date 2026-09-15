@@ -7,7 +7,7 @@ import { matchDemoResponse } from '../services/demoResponses.js';
 import { detectSmallTalk, buildRetrievalQuery, detectListIntent } from '../services/intent.js';
 
 const NO_MATCH_ANSWER =
-  "I don't have anything on file about that. I can help with admissions, fees and scholarships, hostel allotment, library and campus facilities, or upcoming events.";
+  "I don't have anything on file about that, and the AI backend isn't reachable right now to answer it generally either. I can help with admissions, fees and scholarships, hostel allotment, library and campus facilities, or upcoming events.";
 
 const HISTORY_TURNS = 6;
 
@@ -25,7 +25,14 @@ const validators = [
   body('history.*.content').optional().isString().trim().isLength({ min: 1, max: 2000 }),
 ];
 
-/** Shared pre-flight: validation, small talk, retrieval. */
+/**
+ * Shared pre-flight: validation, small talk, retrieval.
+ *
+ * `grounded` on the returned plan tells the caller (and eventually the
+ * client) whether the answer is backed by cited campus records (true),
+ * is the model's own general knowledge because nothing matched (false),
+ * or isn't an informational answer at all — small talk (null).
+ */
 async function prepare(req) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -37,7 +44,7 @@ async function prepare(req) {
 
   const smallTalk = detectSmallTalk(question);
   if (smallTalk) {
-    return { kind: 'canned', answer: smallTalk, sources: [] };
+    return { kind: 'canned', answer: smallTalk, sources: [], grounded: null };
   }
 
   const [searched, listed] = await Promise.all([
@@ -46,16 +53,20 @@ async function prepare(req) {
   ]);
   const { matched, sources, contextBlock } = mergeRetrievals(listed, searched);
 
-  if (!matched) {
-    return { kind: 'canned', answer: NO_MATCH_ANSWER, sources: [] };
-  }
-
   if (process.env.DEMO_MODE === 'true') {
+    // No live model to fall back on here, so an unmatched question still
+    // gets the flat refusal rather than a fabricated "general knowledge"
+    // answer with nothing actually generating it.
+    if (!matched) return { kind: 'canned', answer: NO_MATCH_ANSWER, sources: [], grounded: false };
     const demo = matchDemoResponse(question);
-    return { kind: 'canned', ...(demo ?? { answer: NO_MATCH_ANSWER, sources: [] }) };
+    return { kind: 'canned', ...(demo ?? { answer: NO_MATCH_ANSWER, sources: [] }), grounded: true };
   }
 
-  return { kind: 'generate', question, history, sources, contextBlock };
+  if (!matched) {
+    return { kind: 'generate', question, history, sources: [], contextBlock: '', mode: 'general' };
+  }
+
+  return { kind: 'generate', question, history, sources, contextBlock, mode: 'grounded' };
 }
 
 const router = Router();
@@ -68,17 +79,17 @@ router.post('/', chatLimiter, validators, async (req, res, next) => {
       return res.status(400).json({ error: 'Validation failed', details: plan.details });
     }
     if (plan.kind === 'canned') {
-      return res.json({ answer: plan.answer, sources: plan.sources });
+      return res.json({ answer: plan.answer, sources: plan.sources, grounded: plan.grounded });
     }
 
     try {
-      const answer = await askModel(plan.question, plan.contextBlock, plan.history);
-      return res.json({ answer, sources: plan.sources });
+      const answer = await askModel(plan.question, plan.contextBlock, plan.history, plan.mode);
+      return res.json({ answer, sources: plan.sources, grounded: plan.mode === 'grounded' });
     } catch (err) {
       if (err instanceof ModelUnavailableError) {
         console.warn('Model unavailable, falling back to canned response:', err.message);
         const demo = matchDemoResponse(plan.question);
-        return res.json(demo ?? { answer: NO_MATCH_ANSWER, sources: [] });
+        return res.json(demo ?? { answer: NO_MATCH_ANSWER, sources: [], grounded: Boolean(demo) });
       }
       throw err;
     }
@@ -110,16 +121,16 @@ router.post('/stream', chatLimiter, validators, async (req, res, next) => {
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   if (plan.kind === 'canned') {
-    send('sources', plan.sources);
+    send('meta', { sources: plan.sources, grounded: plan.grounded });
     send('token', plan.answer);
     send('done', {});
     return res.end();
   }
 
-  send('sources', plan.sources);
+  send('meta', { sources: plan.sources, grounded: plan.mode === 'grounded' });
 
   try {
-    for await (const delta of streamModel(plan.question, plan.contextBlock, plan.history)) {
+    for await (const delta of streamModel(plan.question, plan.contextBlock, plan.history, plan.mode)) {
       send('token', delta);
     }
     send('done', {});

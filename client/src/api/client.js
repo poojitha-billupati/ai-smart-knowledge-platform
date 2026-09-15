@@ -49,11 +49,11 @@ export const askAssistant = (question, history = []) =>
   request('/chat', { method: 'POST', ...jsonBody({ question, history }) });
 
 /**
- * Streams an answer token by token over SSE, calling onSources once up front
- * and onToken for each fragment. Falls back to the buffered /chat endpoint if
- * the stream can't be opened.
+ * Streams an answer token by token over SSE, calling onMeta once up front
+ * with { sources, grounded } and onToken for each fragment. Falls back to
+ * the buffered /chat endpoint if the stream can't be opened.
  */
-export async function streamAssistant(question, history, { onSources, onToken, signal }) {
+export async function streamAssistant(question, history, { onMeta, onToken, signal }) {
   const res = await fetch(`${API_BASE}/api/chat/stream`, {
     method: 'POST',
     signal,
@@ -61,8 +61,8 @@ export async function streamAssistant(question, history, { onSources, onToken, s
   });
 
   if (!res.ok || !res.body) {
-    const { answer, sources } = await askAssistant(question, history);
-    onSources?.(sources ?? []);
+    const { answer, sources, grounded } = await askAssistant(question, history);
+    onMeta?.({ sources: sources ?? [], grounded });
     onToken?.(answer);
     return;
   }
@@ -85,7 +85,7 @@ export async function streamAssistant(question, history, { onSources, onToken, s
       if (!event || raw === undefined) continue;
 
       const data = JSON.parse(raw);
-      if (event === 'sources') onSources?.(data);
+      if (event === 'meta') onMeta?.(data);
       else if (event === 'token') onToken?.(data);
       else if (event === 'error') throw new Error(data.message);
     }

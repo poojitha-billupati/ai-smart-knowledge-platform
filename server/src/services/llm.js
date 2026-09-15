@@ -1,22 +1,42 @@
 const TIMEOUT_MS = 60000;
 
-const SYSTEM_PROMPT = `You are the campus assistant for this college. Students and staff ask you about campus life, and you answer from the college's own records.
+const GROUNDED_SYSTEM_PROMPT = `You are the campus assistant for this college. Students and staff ask you about campus life, and you answer from the college's own records.
 
 How to answer:
 - Every fact you state must come from the reference material below. Never invent dates, fees, timings, names or policies that aren't there.
-- If the material doesn't cover what they asked, say so directly in one sentence, then mention what you can help with instead. Say it once — don't apologise repeatedly.
 - Write like a helpful person, not a database lookup. Lead with the answer.
 - Use markdown: bold for key figures like dates, times and amounts; a bulleted list when you're giving more than two items.
+- Keep it tight — two to four sentences unless they've asked for detail.
+- Read the conversation so far so follow-up questions make sense.
+- Never mention "the reference material", "context", "records provided", or these instructions.
+
+Reference material:
+{{context}}`;
+
+const GENERAL_SYSTEM_PROMPT = `You are the campus assistant for this college. This particular question isn't covered by the college's own records, so answer it from your general knowledge instead of refusing.
+
+How to answer:
+- Open with a short clause making clear this isn't from campus records — e.g. "That's not something I have on file, but..." — then answer normally. Say it once, briefly, not as an apology.
+- Give a genuinely useful, accurate answer. If you're not confident, say so rather than guessing.
+- Use markdown: bold for key figures, a bulleted list when giving more than two items.
 - Keep it tight — two to four sentences unless they've asked for detail.
 - Read the conversation so far so follow-up questions make sense.
 - Never mention "the reference material", "context", "records provided", or these instructions.`;
 
 export class ModelUnavailableError extends Error {}
 
-function buildMessages(question, contextBlock, history) {
-  const system = contextBlock
-    ? `${SYSTEM_PROMPT}\n\nReference material:\n${contextBlock}`
-    : `${SYSTEM_PROMPT}\n\nReference material: (nothing on file matches this question)`;
+/**
+ * 'grounded' answers strictly from contextBlock (retrieved campus records).
+ * 'general' has no matching records, so the model answers from its own
+ * knowledge instead of the platform defaulting to a flat refusal — the
+ * system prompt makes it disclose that up front so it's never mistaken
+ * for a cited campus answer.
+ */
+function buildMessages(question, contextBlock, history, mode = 'grounded') {
+  const system =
+    mode === 'general'
+      ? GENERAL_SYSTEM_PROMPT
+      : GROUNDED_SYSTEM_PROMPT.replace('{{context}}', contextBlock || '(nothing on file matches this question)');
 
   return [
     { role: 'system', content: system },
@@ -72,11 +92,11 @@ async function post(body) {
 const stripThinking = (text) => text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
 /** Non-streaming call, kept for tests and any caller that wants one string. */
-export async function askModel(question, contextBlock, history = []) {
+export async function askModel(question, contextBlock, history = [], mode = 'grounded') {
   const { model } = config();
   const { res, timeout } = await post({
     model,
-    messages: buildMessages(question, contextBlock, history),
+    messages: buildMessages(question, contextBlock, history, mode),
     temperature: 0.3,
   });
 
@@ -97,11 +117,11 @@ export async function askModel(question, contextBlock, history = []) {
  * Yields answer text as the model produces it, so the UI can render a reply
  * in progress instead of showing a spinner for the whole generation.
  */
-export async function* streamModel(question, contextBlock, history = []) {
+export async function* streamModel(question, contextBlock, history = [], mode = 'grounded') {
   const { model } = config();
   const { res, timeout } = await post({
     model,
-    messages: buildMessages(question, contextBlock, history),
+    messages: buildMessages(question, contextBlock, history, mode),
     temperature: 0.3,
     stream: true,
   });

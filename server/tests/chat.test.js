@@ -47,7 +47,7 @@ describe('POST /api/chat', () => {
     expect(askModel).not.toHaveBeenCalled();
   });
 
-  it('success: matched question calls the model and returns its answer with sources', async () => {
+  it('success: matched question calls the model in grounded mode and returns its answer with sources', async () => {
     askModel.mockResolvedValueOnce('The library opens at 8am on weekdays.');
 
     const res = await request(app).post('/api/chat').send({ question: 'When does the library open?' });
@@ -55,7 +55,8 @@ describe('POST /api/chat', () => {
     expect(res.status).toBe(200);
     expect(res.body.answer).toBe('The library opens at 8am on weekdays.');
     expect(res.body.sources.length).toBeGreaterThan(0);
-    expect(askModel).toHaveBeenCalledTimes(1);
+    expect(res.body.grounded).toBe(true);
+    expect(askModel).toHaveBeenCalledWith(expect.any(String), expect.any(String), expect.any(Array), 'grounded');
   });
 
   it('greetings are answered conversationally without retrieval or the model', async () => {
@@ -109,14 +110,41 @@ describe('POST /api/chat', () => {
     expect(askModel).not.toHaveBeenCalled();
   });
 
-  it('empty-context: a question matching nothing never calls the model', async () => {
+  it('empty-context: a question matching nothing still calls the model, in general mode, with no sources', async () => {
+    askModel.mockResolvedValueOnce("That's not on file, but the airspeed velocity of an unladen swallow is roughly 11 m/s.");
+
+    const res = await request(app)
+      .post('/api/chat')
+      .send({ question: 'What is the airspeed velocity of an unladen swallow?' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.answer).toMatch(/airspeed velocity/i);
+    expect(res.body.sources).toEqual([]);
+    expect(res.body.grounded).toBe(false);
+    expect(askModel).toHaveBeenCalledWith(expect.any(String), '', expect.any(Array), 'general');
+  });
+
+  it('empty-context, model unreachable: falls back to the flat refusal instead of a broken generation', async () => {
+    askModel.mockRejectedValueOnce(new ModelUnavailableError('fetch failed'));
+
     const res = await request(app)
       .post('/api/chat')
       .send({ question: 'What is the airspeed velocity of an unladen swallow?' });
 
     expect(res.status).toBe(200);
     expect(res.body.answer).toMatch(/don't have anything on file/i);
-    expect(res.body.sources).toEqual([]);
+  });
+
+  it('DEMO_MODE=true, empty-context: skips the model and gives the flat refusal (no live model to answer generally)', async () => {
+    process.env.DEMO_MODE = 'true';
+
+    const res = await request(app)
+      .post('/api/chat')
+      .send({ question: 'What is the airspeed velocity of an unladen swallow?' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.answer).toMatch(/don't have anything on file/i);
+    expect(res.body.grounded).toBe(false);
     expect(askModel).not.toHaveBeenCalled();
   });
 

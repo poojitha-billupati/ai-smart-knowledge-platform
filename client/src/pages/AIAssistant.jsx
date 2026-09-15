@@ -68,7 +68,7 @@ export default function AIAssistant() {
     try {
       await streamAssistant(question, history, {
         signal: controller.signal,
-        onSources: (sources) => patchLast({ sources }),
+        onMeta: ({ sources, grounded }) => patchLast({ sources, grounded }),
         onToken: (token) => patchLast((last) => ({ ...last, content: last.content + token })),
       });
       patchLast({ streaming: false });
@@ -191,6 +191,12 @@ export default function AIAssistant() {
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {m.grounded === false && !m.streaming && m.content && (
+                    <p className="mt-3 flex items-center gap-1.5 border-t border-dashed border-rule pt-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-faint">
+                      <Icon name="assistant" className="h-3 w-3" />
+                      General knowledge — not from campus records
+                    </p>
                   )}
                 </div>
                 {!m.streaming && m.content && (
