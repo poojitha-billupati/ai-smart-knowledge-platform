@@ -61,8 +61,8 @@ export async function streamAssistant(question, history, { onMeta, onToken, sign
   });
 
   if (!res.ok || !res.body) {
-    const { answer, sources, grounded } = await askAssistant(question, history);
-    onMeta?.({ sources: sources ?? [], grounded });
+    const { answer, sources, grounded, card } = await askAssistant(question, history);
+    onMeta?.({ sources: sources ?? [], grounded, card: card ?? null });
     onToken?.(answer);
     return;
   }

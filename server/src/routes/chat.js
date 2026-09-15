@@ -4,7 +4,12 @@ import rateLimit from 'express-rate-limit';
 import { retrieve, listUpcomingEvents, mergeRetrievals } from '../services/retrieval.js';
 import { askModel, streamModel, ModelUnavailableError } from '../services/llm.js';
 import { matchDemoResponse } from '../services/demoResponses.js';
-import { detectSmallTalk, buildRetrievalQuery, detectListIntent } from '../services/intent.js';
+import {
+  detectSmallTalk,
+  detectCreatorQuestion,
+  buildRetrievalQuery,
+  detectListIntent,
+} from '../services/intent.js';
 
 const NO_MATCH_ANSWER =
   "I don't have anything on file about that, and the AI backend isn't reachable right now to answer it generally either. I can help with admissions, fees and scholarships, hostel allotment, library and campus facilities, or upcoming events.";
@@ -41,6 +46,11 @@ async function prepare(req) {
 
   const { question } = req.body;
   const history = (req.body.history ?? []).slice(-HISTORY_TURNS);
+
+  const creator = detectCreatorQuestion(question);
+  if (creator) {
+    return { kind: 'canned', answer: creator.answer, sources: [], grounded: null, card: { type: 'creator', ...creator.profile } };
+  }
 
   const smallTalk = detectSmallTalk(question);
   if (smallTalk) {
@@ -79,7 +89,7 @@ router.post('/', chatLimiter, validators, async (req, res, next) => {
       return res.status(400).json({ error: 'Validation failed', details: plan.details });
     }
     if (plan.kind === 'canned') {
-      return res.json({ answer: plan.answer, sources: plan.sources, grounded: plan.grounded });
+      return res.json({ answer: plan.answer, sources: plan.sources, grounded: plan.grounded, card: plan.card ?? null });
     }
 
     try {
@@ -121,13 +131,13 @@ router.post('/stream', chatLimiter, validators, async (req, res, next) => {
   const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   if (plan.kind === 'canned') {
-    send('meta', { sources: plan.sources, grounded: plan.grounded });
+    send('meta', { sources: plan.sources, grounded: plan.grounded, card: plan.card ?? null });
     send('token', plan.answer);
     send('done', {});
     return res.end();
   }
 
-  send('meta', { sources: plan.sources, grounded: plan.mode === 'grounded' });
+  send('meta', { sources: plan.sources, grounded: plan.mode === 'grounded', card: null });
 
   try {
     for await (const delta of streamModel(plan.question, plan.contextBlock, plan.history, plan.mode)) {

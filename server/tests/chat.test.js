@@ -68,6 +68,27 @@ describe('POST /api/chat', () => {
     expect(askModel).not.toHaveBeenCalled();
   });
 
+  it('"who built you" returns the creator profile card without calling the model', async () => {
+    const res = await request(app).post('/api/chat').send({ question: 'who built you?' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.card).toMatchObject({
+      type: 'creator',
+      name: 'Billupati Venkata Poojitha',
+      college: 'PBR VITS',
+      hometown: 'Kavali, Nellore district',
+    });
+    expect(res.body.answer).toMatch(/Billupati Venkata Poojitha/);
+    expect(askModel).not.toHaveBeenCalled();
+  });
+
+  it('recognizes other phrasings of the creator question, including present-tense typos', async () => {
+    for (const question of ['who is your developer', 'who build you', 'who made this app']) {
+      const res = await request(app).post('/api/chat').send({ question });
+      expect(res.body.card?.type).toBe('creator');
+    }
+  });
+
   it('a follow-up borrows terms from the previous turn so retrieval still matches', async () => {
     askModel.mockResolvedValueOnce('Yes, it is open on weekends.');
 

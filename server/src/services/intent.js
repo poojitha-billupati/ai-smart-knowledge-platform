@@ -3,6 +3,24 @@ const THANKS = /^(thanks|thank\s*you|thx|ty|great|awesome|nice|cool|perfect)\b/i
 const FAREWELL = /^(bye|goodbye|see\s*you|cya|good\s*night)\b/i;
 const CAPABILITY = /(what can you do|who are you|what are you|how do you work|what do you know|help me|^help$)/i;
 
+const CREATOR_QUESTION =
+  /\bwho\s+(built|build|made|make|created|create|developed|develop|designed|design|coded|code|programmed|program)\s+(you|this|it|the\s+(app|platform|site|website|assistant|bot))\b|\byour\s+(creator|developer|maker|builder|author)\b|\bwho'?s?\s+(behind|building|made)\s+you\b|\bwho\s+is\s+your\s+(creator|developer|maker)\b/i;
+
+/** Shown as a profile card by the client — see AIAssistant.jsx. */
+export const CREATOR_PROFILE = {
+  name: 'Billupati Venkata Poojitha',
+  program: 'B.Tech, Computer Science & Engineering',
+  college: 'PBR VITS',
+  hometown: 'Kavali, Nellore district',
+};
+
+const creatorAnswer = `This platform was built by **${CREATOR_PROFILE.name}**, a ${CREATOR_PROFILE.program} student at ${CREATOR_PROFILE.college}, from ${CREATOR_PROFILE.hometown}.`;
+
+/** "Who built you" and its variants — a fixed profile card, not a model call. */
+export function detectCreatorQuestion(question) {
+  return CREATOR_QUESTION.test(question.trim()) ? { answer: creatorAnswer, profile: CREATOR_PROFILE } : null;
+}
+
 const replies = {
   greeting:
     "Hello. I'm the campus assistant — I can answer questions about admissions, fees, facilities, hostel, the library, and upcoming events. What would you like to know?",

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { streamAssistant } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import Markdown from '../components/Markdown';
+import CreatorCard from '../components/CreatorCard';
 import Icon, { Seal } from '../components/Icon';
 
 const GREETING = {
@@ -68,7 +69,7 @@ export default function AIAssistant() {
     try {
       await streamAssistant(question, history, {
         signal: controller.signal,
-        onMeta: ({ sources, grounded }) => patchLast({ sources, grounded }),
+        onMeta: ({ sources, grounded, card }) => patchLast({ sources, grounded, card }),
         onToken: (token) => patchLast((last) => ({ ...last, content: last.content + token })),
       });
       patchLast({ streaming: false });
@@ -199,6 +200,7 @@ export default function AIAssistant() {
                     </p>
                   )}
                 </div>
+                {m.card?.type === 'creator' && !m.streaming && <CreatorCard data={m.card} />}
                 {!m.streaming && m.content && (
                   <div className="mt-1 flex items-center gap-3 pl-1">
                     {m.ts && <p className="text-[10px] text-ink-faint">{timeFormatter.format(m.ts)}</p>}
