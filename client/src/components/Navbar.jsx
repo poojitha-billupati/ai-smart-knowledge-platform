@@ -13,10 +13,10 @@ const links = [
 ];
 
 const linkClass = ({ isActive }) =>
-  `flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
+  `flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-bold transition-all duration-200 active:scale-95 ${
     isActive
-      ? 'bg-marigold font-semibold text-marigold-ink'
-      : 'text-band-dim hover:bg-white/10 hover:text-band-ink'
+      ? 'bg-accent text-marigold-ink shadow-card'
+      : 'text-ink-soft hover:bg-sunk hover:text-ink'
   }`;
 
 export default function Navbar() {
@@ -24,23 +24,19 @@ export default function Navbar() {
   const { dark, toggle } = useTheme();
 
   return (
-    <header className="relative overflow-hidden bg-band text-band-ink">
-      <div
-        className="jaali pointer-events-none absolute inset-0 text-marigold opacity-15"
-        aria-hidden="true"
-      />
-      <div className="relative mx-auto max-w-6xl px-5">
-        <div className="flex items-center justify-between gap-4 py-3.5">
-          <Link to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <Seal className="h-8 w-8 text-marigold" />
-            <span className="font-display text-lg leading-none tracking-wide">
+    <header className="border-b-2 border-dashed border-rule bg-surface">
+      <div className="mx-auto max-w-6xl px-5">
+        <div className="flex items-center justify-between gap-4 py-3">
+          <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
+            <Seal className="h-9 w-9 text-accent" />
+            <span className="font-display text-[30px] leading-none text-band">
               Knowledge Platform
             </span>
           </Link>
 
           <div className="flex items-center gap-1">
             <nav className="hidden md:block">
-              <ul className="flex">
+              <ul className="flex gap-1">
                 {links.map((link) => (
                   <li key={link.to}>
                     <NavLink to={link.to} end={link.end} className={linkClass}>
@@ -55,7 +51,7 @@ export default function Navbar() {
               type="button"
               onClick={toggle}
               aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'}
-              className="ml-1 p-2 text-band-dim transition-colors hover:bg-white/10 hover:text-band-ink"
+              className="ml-1 rounded-full p-2 text-ink-faint transition-colors hover:bg-sunk hover:text-ink"
             >
               <Icon name={dark ? 'sun' : 'moon'} className="h-[18px] w-[18px]" />
             </button>
@@ -65,7 +61,7 @@ export default function Navbar() {
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? 'Close menu' : 'Open menu'}
               aria-expanded={open}
-              className="p-2 text-band-dim transition-colors hover:bg-white/10 hover:text-band-ink md:hidden"
+              className="rounded-full p-2 text-ink-faint transition-colors hover:bg-sunk hover:text-ink md:hidden"
             >
               <Icon name={open ? 'close' : 'menu'} className="h-[18px] w-[18px]" />
             </button>
@@ -73,8 +69,8 @@ export default function Navbar() {
         </div>
 
         {open && (
-          <nav className="border-t border-white/15 pb-3 md:hidden">
-            <ul className="grid pt-2">
+          <nav className="border-t-2 border-dashed border-rule pb-3 md:hidden">
+            <ul className="grid gap-1 pt-2.5">
               {links.map((link) => (
                 <li key={link.to}>
                   <NavLink
@@ -92,8 +88,6 @@ export default function Navbar() {
           </nav>
         )}
       </div>
-
-      <div className="relative h-1 bg-marigold" aria-hidden="true" />
     </header>
   );
 }

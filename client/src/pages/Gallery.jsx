@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { Loading, ErrorState, EmptyState } from '../components/QueryState';
+import { ErrorState, EmptyState } from '../components/QueryState';
+import { SkeletonCards } from '../components/Skeleton';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { getImages, assetUrl } from '../api/client';
 
-const accents = ['indigo', 'marigold', 'terracotta'];
+const accents = ['accent', 'sage', 'dusty'];
 
 export default function Gallery() {
   const { status, data, error, retry } = useAsync(getImages, []);
@@ -33,10 +34,10 @@ export default function Gallery() {
             key={c}
             type="button"
             onClick={() => setCategory(c)}
-            className={`border px-3.5 py-1.5 text-sm transition-colors ${
+            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all duration-200 active:scale-95 ${
               category === c
-                ? 'border-accent bg-accent font-semibold text-band-ink'
-                : 'border-rule bg-surface text-ink-soft hover:border-ink-faint hover:text-ink'
+                ? 'bg-accent text-marigold-ink shadow-card'
+                : 'bg-surface text-ink-soft shadow-card hover:text-ink'
             }`}
           >
             {c}
@@ -44,7 +45,7 @@ export default function Gallery() {
         ))}
       </div>
 
-      {status === 'loading' && <Loading label="Loading gallery" />}
+      {status === 'loading' && <SkeletonCards count={6} />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load images.'} onRetry={retry} />
       )}
@@ -52,15 +53,20 @@ export default function Gallery() {
         <EmptyState message="No images in this category yet." />
       )}
       {status === 'success' && filtered.length > 0 && (
-        <div className="rise grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((img, i) => (
-            <Card
+            <div
               key={img._id}
-              title={img.title}
-              subtitle={`Linked to ${img.relatedType}`}
-              image={assetUrl(img.imageUrl)}
-              accent={accents[i % accents.length]}
-            />
+              className="rise rounded-2xl"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+            >
+              <Card
+                title={img.title}
+                subtitle={`Linked to ${img.relatedType}`}
+                image={assetUrl(img.imageUrl)}
+                accent={accents[i % accents.length]}
+              />
+            </div>
           ))}
         </div>
       )}

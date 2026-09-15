@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
-import { Loading, ErrorState } from '../components/QueryState';
+import { ErrorState } from '../components/QueryState';
+import { SkeletonTiles } from '../components/Skeleton';
 import PageHeader from '../components/PageHeader';
 import Icon from '../components/Icon';
+import { useCountUp } from '../hooks/useCountUp';
 import { getInformation, getEvents, getFaq } from '../api/client';
 
 async function loadStats() {
@@ -20,23 +22,30 @@ const tiles = [
     label: 'Knowledge records',
     note: 'Admissions, fees, facilities',
     to: '/explore',
-    rule: 'bg-terracotta',
+    dot: 'bg-dusty',
   },
   {
     key: 'events',
     label: 'Upcoming events',
     note: 'Sorted soonest first',
     to: '/events',
-    rule: 'bg-accent',
+    dot: 'bg-accent',
   },
   {
     key: 'faq',
     label: 'FAQ entries',
     note: 'Common student questions',
     to: '/explore',
-    rule: 'bg-marigold',
+    dot: 'bg-sage',
   },
 ];
+
+function TileNumber({ value }) {
+  const display = useCountUp(value);
+  return (
+    <p className="mt-2 font-display text-6xl leading-none text-band tabular-nums">{display}</p>
+  );
+}
 
 export default function Dashboard() {
   const { status, data, error, retry } = useAsync(loadStats, []);
@@ -48,29 +57,25 @@ export default function Dashboard() {
         English and get an answer drawn only from these records.
       </PageHeader>
 
-      {status === 'loading' && <Loading label="Loading stats" />}
+      {status === 'loading' && <SkeletonTiles count={3} />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load stats.'} onRetry={retry} />
       )}
       {status === 'success' && (
-        <div className="rise grid grid-cols-1 border border-rule bg-surface sm:grid-cols-3">
-          {tiles.map((tile) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {tiles.map((tile, i) => (
             <Link
               key={tile.key}
               to={tile.to}
-              className="group relative border-b border-rule p-6 transition-colors last:border-b-0 hover:bg-sunk sm:border-b-0 sm:border-l sm:first:border-l-0"
+              className="rise group rounded-2xl bg-surface p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover active:scale-[0.98]"
+              style={{ animationDelay: `${i * 60}ms` }}
             >
-              <span
-                className={`absolute inset-x-0 top-0 h-[3px] ${tile.rule}`}
-                aria-hidden="true"
-              />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
+                <span className={`h-1.5 w-1.5 rounded-full ${tile.dot}`} aria-hidden="true" />
                 {tile.label}
               </p>
-              <p className="mt-2 font-display text-5xl leading-none text-accent tabular-nums">
-                {data[tile.key]}
-              </p>
-              <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-soft">
+              <TileNumber value={data[tile.key]} />
+              <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
                 {tile.note}
                 <span className="transition-transform group-hover:translate-x-0.5">→</span>
               </p>
@@ -79,17 +84,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      <section className="relative mt-10 overflow-hidden bg-band px-7 py-8 text-band-ink">
-        <div
-          className="jaali pointer-events-none absolute inset-0 text-marigold opacity-15"
-          aria-hidden="true"
-        />
+      <section className="relative mt-10 overflow-hidden rounded-2xl bg-band px-7 py-8 text-band-ink">
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-marigold">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-marigold">
               Grounded answers
             </p>
-            <h2 className="mt-2 max-w-xl font-display text-2xl leading-snug">
+            <h2 className="mt-2 max-w-xl text-2xl font-extrabold leading-snug">
               Ask the assistant anything about campus
             </h2>
             <p className="mt-2 max-w-xl text-sm text-band-dim">
@@ -99,7 +100,7 @@ export default function Dashboard() {
           </div>
           <Link
             to="/assistant"
-            className="inline-flex items-center gap-2 bg-marigold px-5 py-2.5 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-full bg-marigold px-5 py-2.5 text-sm font-bold text-marigold-ink transition-all duration-200 hover:opacity-90 active:scale-95"
           >
             Open assistant
             <Icon name="send" className="h-4 w-4" />

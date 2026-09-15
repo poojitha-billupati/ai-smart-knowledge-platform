@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
-import { Loading, ErrorState, EmptyState } from '../components/QueryState';
+import { ErrorState, EmptyState } from '../components/QueryState';
+import { SkeletonTiles, SkeletonTable } from '../components/Skeleton';
 import RecordForm from '../components/RecordForm';
 import PageHeader from '../components/PageHeader';
 import Icon, { Seal } from '../components/Icon';
+import { useCountUp } from '../hooks/useCountUp';
 import {
   getInformation,
   getEvents,
@@ -85,7 +87,7 @@ const COLLECTIONS = {
 };
 
 const inputClass =
-  'mt-1.5 w-full border border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
+  'mt-1.5 w-full rounded-xl border-2 border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
 
 function LoginForm({ onLogin }) {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -109,22 +111,16 @@ function LoginForm({ onLogin }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rise mx-auto mt-8 max-w-sm border border-rule bg-surface">
-      <div className="relative overflow-hidden bg-band px-6 py-6 text-center">
-        <div
-          className="jaali pointer-events-none absolute inset-0 text-marigold opacity-15"
-          aria-hidden="true"
-        />
-        <Seal className="relative mx-auto h-10 w-10 text-marigold" />
-        <h2 className="relative mt-3 font-display text-2xl text-band-ink">Admin sign in</h2>
-        <p className="relative mt-1 text-xs text-band-dim">
-          Staff access for managing campus records
-        </p>
+    <form onSubmit={handleSubmit} className="rise mx-auto mt-8 max-w-sm rounded-2xl bg-surface shadow-card-hover">
+      <div className="rounded-t-2xl bg-band px-6 py-7 text-center">
+        <Seal className="mx-auto h-10 w-10 text-marigold" />
+        <h2 className="mt-3 text-2xl font-extrabold text-band-ink">Admin sign in</h2>
+        <p className="mt-1 text-xs text-band-dim">Staff access for managing campus records</p>
       </div>
 
       <div className="space-y-4 p-6">
         <label className="block text-sm">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
             Email
           </span>
           <input
@@ -136,7 +132,7 @@ function LoginForm({ onLogin }) {
           />
         </label>
         <label className="block text-sm">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+          <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
             Password
           </span>
           <input
@@ -149,7 +145,7 @@ function LoginForm({ onLogin }) {
         </label>
 
         {error && (
-          <p className="border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
+          <p className="rounded-xl border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
             {error}
           </p>
         )}
@@ -157,7 +153,7 @@ function LoginForm({ onLogin }) {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-marigold px-4 py-2.5 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="w-full rounded-full bg-marigold px-4 py-2.5 text-sm font-bold text-marigold-ink transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-40"
         >
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
@@ -166,19 +162,17 @@ function LoginForm({ onLogin }) {
   );
 }
 
-const statRules = ['bg-terracotta', 'bg-accent', 'bg-marigold', 'bg-ink-faint'];
+const statDots = ['bg-dusty', 'bg-accent', 'bg-sage', 'bg-ink-faint'];
 
 function StatCard({ label, value, index }) {
+  const display = useCountUp(value);
   return (
-    <div className="relative border border-rule bg-surface p-5">
-      <span
-        className={`absolute inset-x-0 top-0 h-[3px] ${statRules[index % statRules.length]}`}
-        aria-hidden="true"
-      />
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+    <div className="rise rounded-2xl bg-surface p-5 shadow-card" style={{ animationDelay: `${index * 60}ms` }}>
+      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
+        <span className={`h-1.5 w-1.5 rounded-full ${statDots[index % statDots.length]}`} aria-hidden="true" />
         {label}
       </p>
-      <p className="mt-1.5 font-display text-4xl leading-none text-accent tabular-nums">{value}</p>
+      <p className="mt-1.5 font-display text-5xl leading-none text-band tabular-nums">{display}</p>
     </div>
   );
 }
@@ -187,6 +181,34 @@ function RecordsTable({ collection, rows, onChange }) {
   const { title, columns, fields } = COLLECTIONS[collection];
   const [deletingId, setDeletingId] = useState(null);
   const [formState, setFormState] = useState(null); // null | 'new' | row object
+  const [selected, setSelected] = useState(() => new Set());
+  const [sort, setSort] = useState({ key: null, dir: 'asc' });
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const sortedRows = useMemo(() => {
+    if (!sort.key) return rows;
+    const factor = sort.dir === 'asc' ? 1 : -1;
+    return [...rows].sort(
+      (a, b) => String(a[sort.key]).localeCompare(String(b[sort.key])) * factor,
+    );
+  }, [rows, sort]);
+
+  function toggleSort(key) {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  }
+
+  function toggleRow(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setSelected((prev) => (prev.size === rows.length ? new Set() : new Set(rows.map((r) => r._id))));
+  }
 
   async function handleDelete(id) {
     setDeletingId(id);
@@ -197,6 +219,23 @@ function RecordsTable({ collection, rows, onChange }) {
       window.alert(err.message || 'Delete failed.');
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleBulkDelete() {
+    const n = selected.size;
+    if (!window.confirm(`Delete ${n} ${title.toLowerCase()} record${n === 1 ? '' : 's'}? This can't be undone.`)) {
+      return;
+    }
+    setBulkDeleting(true);
+    try {
+      await Promise.all([...selected].map((id) => deleteRecord(collection, id)));
+      setSelected(new Set());
+      onChange();
+    } catch (err) {
+      window.alert(err.message || 'Bulk delete failed.');
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -212,39 +251,101 @@ function RecordsTable({ collection, rows, onChange }) {
 
   return (
     <section className="mt-9">
-      <div className="mb-3 flex items-center justify-between border-b border-rule pb-2.5">
-        <h3 className="font-display text-xl text-ink">{title}</h3>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b-2 border-dashed border-rule pb-2.5">
+        <h3 className="text-xl font-extrabold text-band">{title}</h3>
         <button
           type="button"
           onClick={() => setFormState('new')}
-          className="inline-flex items-center gap-1.5 border border-rule bg-surface px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
+          className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3.5 py-1.5 text-xs font-bold text-ink-soft shadow-card transition-all duration-200 hover:text-ink active:scale-95"
         >
           <Icon name="plus" className="h-3.5 w-3.5" />
           Add
         </button>
       </div>
 
+      {selected.size > 0 && (
+        <div className="rise mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-band px-4 py-2.5 text-band-ink">
+          <span className="flex items-center gap-2 text-sm font-bold">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-marigold text-marigold-ink">
+              <Icon name="check" className="h-3 w-3" />
+            </span>
+            {selected.size} selected
+          </span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-xs font-bold text-band-dim hover:text-band-ink"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="rounded-full bg-terracotta px-3.5 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {bulkDeleting ? 'Deleting…' : 'Delete selected'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <EmptyState message={`No ${title.toLowerCase()} records yet.`} />
       ) : (
-        <div className="overflow-x-auto border border-rule bg-surface">
+        <div className="overflow-x-auto rounded-2xl bg-surface shadow-card">
           <table className="w-full text-left text-sm">
             <thead className="bg-sunk">
               <tr>
+                <th className="w-10 px-4 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={selected.size === rows.length}
+                    onChange={toggleAll}
+                    aria-label="Select all rows"
+                    className="h-4 w-4 accent-accent"
+                  />
+                </th>
                 {columns.map((c) => (
-                  <th
-                    key={c.key}
-                    className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint"
-                  >
-                    {c.label}
+                  <th key={c.key} className="px-4 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(c.key)}
+                      className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint hover:text-ink"
+                    >
+                      {c.label}
+                      <Icon
+                        name="chevron"
+                        className={`h-3 w-3 transition-transform ${
+                          sort.key === c.key
+                            ? `text-accent ${sort.dir === 'asc' ? 'rotate-180' : ''}`
+                            : 'opacity-30'
+                        }`}
+                      />
+                    </button>
                   </th>
                 ))}
                 <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row._id} className="border-t border-rule-soft hover:bg-sunk">
+              {sortedRows.map((row) => (
+                <tr
+                  key={row._id}
+                  className={`border-t border-rule-soft hover:bg-sunk ${
+                    selected.has(row._id) ? 'bg-accent-wash' : ''
+                  }`}
+                >
+                  <td className="px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(row._id)}
+                      onChange={() => toggleRow(row._id)}
+                      aria-label={`Select ${row.title ?? row.question ?? 'row'}`}
+                      className="h-4 w-4 accent-accent"
+                    />
+                  </td>
                   {columns.map((c) => (
                     <td key={c.key} className="max-w-xs truncate px-4 py-2.5 text-ink">
                       {row[c.key]}
@@ -254,7 +355,7 @@ function RecordsTable({ collection, rows, onChange }) {
                     <button
                       type="button"
                       onClick={() => setFormState(row)}
-                      className="text-xs font-semibold text-accent hover:underline"
+                      className="text-xs font-bold text-accent hover:underline"
                     >
                       Edit
                     </button>
@@ -262,7 +363,7 @@ function RecordsTable({ collection, rows, onChange }) {
                       type="button"
                       onClick={() => handleDelete(row._id)}
                       disabled={deletingId === row._id}
-                      className="ml-4 text-xs font-semibold text-terracotta hover:underline disabled:opacity-50"
+                      className="ml-4 text-xs font-bold text-terracotta hover:underline disabled:opacity-50"
                     >
                       {deletingId === row._id ? 'Deleting…' : 'Delete'}
                     </button>
@@ -318,7 +419,7 @@ export default function Admin() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 border border-rule bg-surface px-3 py-1.5 text-xs text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
+            className="inline-flex items-center gap-2 rounded-full bg-surface px-3.5 py-1.5 text-xs font-bold text-ink-soft shadow-card transition-colors hover:text-ink"
           >
             <Icon name="logout" className="h-3.5 w-3.5" />
             Sign out · {admin.email}
@@ -326,10 +427,17 @@ export default function Admin() {
         }
       >
         Add, edit and remove the records that Explore, Events, Gallery and the assistant all read
-        from.
+        from. Select rows to delete several at once.
       </PageHeader>
 
-      {status === 'loading' && <Loading label="Loading records" />}
+      {status === 'loading' && (
+        <>
+          <SkeletonTiles count={4} />
+          <div className="mt-9">
+            <SkeletonTable rows={4} />
+          </div>
+        </>
+      )}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load dashboard.'} onRetry={retry} />
       )}

@@ -1,5 +1,6 @@
 import { useAsync } from '../hooks/useAsync';
-import { Loading, ErrorState, EmptyState } from '../components/QueryState';
+import { ErrorState, EmptyState } from '../components/QueryState';
+import { SkeletonCards } from '../components/Skeleton';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { getEvents, getImages, assetUrl } from '../api/client';
@@ -17,7 +18,7 @@ const dateFormatter = new Intl.DateTimeFormat('en-IN', {
   timeStyle: 'short',
 });
 
-const accents = ['indigo', 'marigold', 'terracotta'];
+const accents = ['accent', 'sage', 'dusty'];
 
 export default function Events() {
   const { status, data, error, retry } = useAsync(loadEvents, []);
@@ -28,7 +29,7 @@ export default function Events() {
         Upcoming campus events, soonest first.
       </PageHeader>
 
-      {status === 'loading' && <Loading label="Loading events" />}
+      {status === 'loading' && <SkeletonCards count={3} />}
       {status === 'error' && (
         <ErrorState message={error?.message ?? 'Could not load events.'} onRetry={retry} />
       )}
@@ -36,16 +37,21 @@ export default function Events() {
         <EmptyState message="No events scheduled yet." />
       )}
       {status === 'success' && data.length > 0 && (
-        <div className="rise grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {data.map((event, i) => (
-            <Card
+            <div
               key={event._id}
-              title={event.title}
-              subtitle={`${dateFormatter.format(new Date(event.date))} · ${event.location}`}
-              description={event.description}
-              image={event.image}
-              accent={accents[i % accents.length]}
-            />
+              className="rise rounded-2xl"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+            >
+              <Card
+                title={event.title}
+                subtitle={`${dateFormatter.format(new Date(event.date))} · ${event.location}`}
+                description={event.description}
+                image={event.image}
+                accent={accents[i % accents.length]}
+              />
+            </div>
           ))}
         </div>
       )}

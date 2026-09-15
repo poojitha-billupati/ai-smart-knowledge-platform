@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { assetUrl } from '../api/client';
 
 function toFormValue(field, value) {
   if (value == null) return '';
@@ -19,7 +20,7 @@ function toPayloadValue(field, value) {
 }
 
 const inputClass =
-  'mt-1.5 w-full border border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
+  'mt-1.5 w-full rounded-xl border-2 border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
 
 /** Generic add/edit modal driven by a field-definition list (§9 Phase 5 CRUD). */
 export default function RecordForm({ title, fields, initialValues = {}, onSubmit, onCancel }) {
@@ -28,6 +29,7 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [previewBroken, setPreviewBroken] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -49,16 +51,16 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-band/70 p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md border border-rule bg-surface shadow-xl"
+        className="rise w-full max-w-md rounded-2xl bg-surface shadow-2xl"
       >
-        <div className="border-b border-rule bg-band px-6 py-4">
-          <h3 className="font-display text-xl text-band-ink">{title}</h3>
+        <div className="rounded-t-2xl border-b-2 border-dashed border-rule px-6 py-4">
+          <h3 className="text-lg font-extrabold text-band">{title}</h3>
         </div>
 
-        <div className="space-y-4 p-6">
+        <div className="max-h-[65vh] space-y-4 overflow-y-auto p-6">
           {fields.map((f) => (
             <label key={f.key} className="block text-sm">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink-faint">
                 {f.label}
               </span>
               {f.type === 'textarea' ? (
@@ -74,35 +76,54 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                   type={f.type === 'datetime' ? 'datetime-local' : 'text'}
                   required={f.required}
                   value={values[f.key]}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  onChange={(e) => {
+                    setValues((v) => ({ ...v, [f.key]: e.target.value }));
+                    if (f.key === 'imageUrl') setPreviewBroken(false);
+                  }}
                   className={inputClass}
                 />
               )}
               {f.type === 'tags' && (
                 <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
               )}
+              {f.key === 'imageUrl' && values.imageUrl && (
+                <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">
+                  {previewBroken ? (
+                    <span className="flex h-28 items-center justify-center text-xs text-ink-faint">
+                      Image not found yet — check the path once saved
+                    </span>
+                  ) : (
+                    <img
+                      src={assetUrl(values.imageUrl)}
+                      alt=""
+                      className="h-28 w-full object-cover object-top"
+                      onError={() => setPreviewBroken(true)}
+                    />
+                  )}
+                </span>
+              )}
             </label>
           ))}
 
           {error && (
-            <p className="border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
+            <p className="rounded-xl border-l-[3px] border-terracotta bg-terracotta-wash px-3 py-2 text-sm text-ink">
               {error}
             </p>
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-rule px-6 py-4">
+        <div className="flex justify-end gap-2 rounded-b-2xl border-t-2 border-dashed border-rule px-6 py-4">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-sm text-ink-soft transition-colors hover:text-ink"
+            className="rounded-full px-4 py-2 text-sm font-bold text-ink-soft transition-colors hover:text-ink"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="bg-marigold px-5 py-2 text-sm font-semibold text-marigold-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="rounded-full bg-marigold px-5 py-2 text-sm font-bold text-marigold-ink transition-all duration-200 hover:opacity-90 active:scale-95 disabled:opacity-40"
           >
             {submitting ? 'Saving…' : 'Save'}
           </button>

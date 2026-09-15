@@ -14,6 +14,9 @@ const paths = {
   logout: 'M15 17l5-5-5-5M20 12H9M12 4H5v16h7',
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm9 3-4-4',
   retry: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
+  copy: 'M9 9h11v11H9V9Zm-4 6V4h11v2',
+  check: 'M5 13l4.5 4.5L19 8',
+  chevron: 'M6 9l6 6 6-6',
 };
 
 export default function Icon({ name, className = 'h-4 w-4', strokeWidth = 1.6 }) {
