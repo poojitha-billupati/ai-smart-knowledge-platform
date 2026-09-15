@@ -5,7 +5,15 @@ const tiltClass = {
   dusty: 'rotate-[-0.4deg]',
 };
 
-export default function Card({ title, subtitle, description, image, footer, accent = 'accent' }) {
+export default function Card({
+  title,
+  subtitle,
+  description,
+  image,
+  footer,
+  tags,
+  accent = 'accent',
+}) {
   return (
     <article
       className={`group flex flex-col overflow-hidden rounded-2xl bg-surface p-2 shadow-card transition-all duration-300 ease-out hover:-translate-y-1 hover:rotate-0 hover:shadow-card-hover ${tiltClass[accent]}`}
@@ -28,6 +36,18 @@ export default function Card({ title, subtitle, description, image, footer, acce
         <h3 className="text-base font-extrabold leading-snug text-ink">{title}</h3>
         {description && (
           <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">{description}</p>
+        )}
+        {tags?.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5">
+            {tags.slice(0, 4).map((tag) => (
+              <li
+                key={tag}
+                className="rounded-full bg-accent-wash px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent"
+              >
+                {tag}
+              </li>
+            ))}
+          </ul>
         )}
         {footer && <div className="mt-auto pt-2">{footer}</div>}
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { streamAssistant } from '../api/client';
 import PageHeader from '../components/PageHeader';
 import Markdown from '../components/Markdown';
@@ -29,6 +30,9 @@ export default function AIAssistant() {
   const [copiedIndex, setCopiedIndex] = useState(null);
   const listRef = useRef(null);
   const abortRef = useRef(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const consumedInitialQuestion = useRef(false);
 
   const atBottom = useRef(true);
 
@@ -39,6 +43,31 @@ export default function AIAssistant() {
   }, [messages]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // A card elsewhere in the app (e.g. Explore's "Ask the assistant about
+  // this") can hand off a question via navigation state instead of the
+  // user typing it. Consume it once, then clear it from history so
+  // navigating back here later — or refreshing — doesn't resend it.
+  //
+  // The setTimeout is deliberate, not decoration: in dev, StrictMode mounts
+  // this effect, immediately runs the unrelated unmount-cleanup effect
+  // (which aborts anything in abortRef), then mounts again — all
+  // synchronously. Calling ask() directly here would start a request only
+  // to have it aborted a tick later by that phantom cleanup. Deferring past
+  // the current synchronous pass lets that dance finish first, so the
+  // request that actually fires is the one that survives.
+  useEffect(() => {
+    const initialQuestion = location.state?.question;
+    if (!initialQuestion || consumedInitialQuestion.current) return undefined;
+
+    const timer = setTimeout(() => {
+      consumedInitialQuestion.current = true;
+      ask(initialQuestion);
+      navigate(location.pathname, { replace: true, state: null });
+    }, 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function ask(question) {
     if (!question || pending) return;

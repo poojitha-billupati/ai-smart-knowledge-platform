@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAsync } from '../hooks/useAsync';
 import { ErrorState, EmptyState } from '../components/QueryState';
 import { SkeletonCards } from '../components/Skeleton';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
+import InformationDetailModal from '../components/InformationDetailModal';
 import Icon from '../components/Icon';
 import { getInformation } from '../api/client';
 
@@ -23,8 +25,10 @@ export default function Explore() {
   const [category, setCategory] = useState('All');
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
+  const [selected, setSelected] = useState(null);
   const wrapRef = useRef(null);
   const cardRefs = useRef(new Map());
+  const navigate = useNavigate();
 
   useEffect(() => {
     function onClickAway(e) {
@@ -64,14 +68,20 @@ export default function Explore() {
     setTimeout(() => setHighlightId((cur) => (cur === item._id ? null : cur)), 1600);
   }
 
+  function askAboutSelected() {
+    if (!selected) return;
+    navigate('/assistant', { state: { question: `Tell me about ${selected.title}` } });
+  }
+
   return (
     <div>
       <PageHeader eyebrow="Knowledge base" title="Explore">
-        Browse every record the assistant draws on — admissions, fees, facilities, and more.
+        Browse every record the assistant draws on — admissions, fees, facilities, and more. Tap
+        a card for the full details.
       </PageHeader>
 
-      <div className="mb-7 flex flex-wrap gap-3">
-        <div ref={wrapRef} className="relative min-w-56 flex-1">
+      <div className="mb-5">
+        <div ref={wrapRef} className="relative">
           <Icon
             name="search"
             className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
@@ -106,17 +116,23 @@ export default function Explore() {
             </div>
           )}
         </div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="rounded-full border-2 border-rule bg-surface px-4 py-2.5 text-sm text-ink focus:border-accent focus:outline-none"
-        >
-          {categories.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+      </div>
+
+      <div className="mb-7 flex flex-wrap gap-2">
+        {categories.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => setCategory(c)}
+            className={`rounded-full px-4 py-1.5 text-sm font-bold transition-all duration-200 active:scale-95 ${
+              category === c
+                ? 'bg-accent text-marigold-ink shadow-card'
+                : 'bg-surface text-ink-soft shadow-card hover:text-ink'
+            }`}
+          >
+            {c}
+          </button>
+        ))}
       </div>
 
       {status === 'loading' && <SkeletonCards count={6} />}
@@ -135,7 +151,16 @@ export default function Explore() {
                 if (el) cardRefs.current.set(item._id, el);
                 else cardRefs.current.delete(item._id);
               }}
-              className={`rise rounded-2xl transition-shadow duration-300 ${
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelected(item)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelected(item);
+                }
+              }}
+              className={`rise cursor-pointer rounded-2xl transition-shadow duration-300 ${
                 highlightId === item._id ? 'ring-4 ring-marigold' : ''
               }`}
               style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
@@ -144,11 +169,20 @@ export default function Explore() {
                 title={item.title}
                 subtitle={item.category}
                 description={item.description}
+                tags={item.tags}
                 accent={accents[i % accents.length]}
               />
             </div>
           ))}
         </div>
+      )}
+
+      {selected && (
+        <InformationDetailModal
+          item={selected}
+          onClose={() => setSelected(null)}
+          onAsk={askAboutSelected}
+        />
       )}
     </div>
   );
