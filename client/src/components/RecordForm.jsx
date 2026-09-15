@@ -16,6 +16,10 @@ function toPayloadValue(field, value) {
       .filter(Boolean);
   }
   if (field.type === 'datetime') return new Date(value).toISOString();
+  // An empty optional select (e.g. "no linked record") must reach the API as
+  // null, not be silently dropped — that's the only way an update can clear
+  // a previously-set relation instead of leaving the old value in place.
+  if (field.type === 'select' && value === '') return null;
   return value;
 }
 
@@ -71,6 +75,21 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                   onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
                   className={inputClass}
                 />
+              ) : f.type === 'select' ? (
+                <select
+                  required={f.required}
+                  value={values[f.key]}
+                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                  className={inputClass}
+                >
+                  {(typeof f.options === 'function' ? f.options(values) : f.options ?? []).map(
+                    (opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ),
+                  )}
+                </select>
               ) : (
                 <input
                   type={f.type === 'datetime' ? 'datetime-local' : f.type === 'url' ? 'url' : 'text'}
@@ -84,14 +103,10 @@ export default function RecordForm({ title, fields, initialValues = {}, onSubmit
                   className={inputClass}
                 />
               )}
-              {f.type === 'tags' && (
+              {f.type === 'tags' && !f.hint && (
                 <span className="mt-1 block text-xs text-ink-faint">Separate with commas</span>
               )}
-              {f.type === 'url' && (
-                <span className="mt-1 block text-xs text-ink-faint">
-                  Where students go to register — shown as a button on the event
-                </span>
-              )}
+              {f.hint && <span className="mt-1 block text-xs text-ink-faint">{f.hint}</span>}
               {f.key === 'imageUrl' && values.imageUrl && (
                 <span className="mt-2 block overflow-hidden rounded-xl border-2 border-dashed border-rule bg-sunk">
                   {previewBroken ? (

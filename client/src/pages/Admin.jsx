@@ -83,9 +83,55 @@ const COLLECTIONS = {
       { key: 'imageUrl', label: 'Image URL', required: true },
       { key: 'category', label: 'Category', required: true },
       { key: 'altText', label: 'Alt text', required: true },
+      {
+        key: 'description',
+        label: 'Description',
+        type: 'textarea',
+        hint: "What this photo shows and why it was taken — shown as its caption in Gallery.",
+      },
     ],
   },
 };
+
+/**
+ * The two "which record is this photo from" fields for the Images form.
+ * Built per-render (not static, unlike the other collections) because the
+ * option list is the live events/information data, not a fixed schema.
+ */
+function buildImageLinkFields({ events, information }) {
+  return [
+    {
+      key: 'relatedType',
+      label: 'Linked to',
+      type: 'select',
+      options: [
+        { value: '', label: 'Nothing — a standalone photo' },
+        { value: 'event', label: 'An event' },
+        { value: 'information', label: 'A knowledge record' },
+      ],
+    },
+    {
+      key: 'relatedId',
+      label: 'Which one',
+      type: 'select',
+      options: (values) => {
+        if (values.relatedType === 'event') {
+          return [
+            { value: '', label: events.length ? 'Choose an event…' : 'No events yet' },
+            ...events.map((e) => ({ value: e._id, label: e.title })),
+          ];
+        }
+        if (values.relatedType === 'information') {
+          return [
+            { value: '', label: information.length ? 'Choose a record…' : 'No records yet' },
+            ...information.map((r) => ({ value: r._id, label: r.title })),
+          ];
+        }
+        return [{ value: '', label: 'Pick "Linked to" first' }];
+      },
+    },
+  ];
+}
 
 const inputClass =
   'mt-1.5 w-full rounded-xl border-2 border-rule bg-paper px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none';
@@ -178,8 +224,9 @@ function StatCard({ label, value, index }) {
   );
 }
 
-function RecordsTable({ collection, rows, onChange }) {
-  const { title, columns, fields } = COLLECTIONS[collection];
+function RecordsTable({ collection, rows, onChange, linkables }) {
+  const { title, columns, fields: baseFields } = COLLECTIONS[collection];
+  const fields = collection === 'images' ? [...baseFields, ...buildImageLinkFields(linkables)] : baseFields;
   const [deletingId, setDeletingId] = useState(null);
   const [formState, setFormState] = useState(null); // null | 'new' | row object
   const [selected, setSelected] = useState(() => new Set());
@@ -454,7 +501,12 @@ export default function Admin() {
           <RecordsTable collection="information" rows={data.information} onChange={retry} />
           <RecordsTable collection="events" rows={data.events} onChange={retry} />
           <RecordsTable collection="faq" rows={data.faq} onChange={retry} />
-          <RecordsTable collection="images" rows={data.images} onChange={retry} />
+          <RecordsTable
+            collection="images"
+            rows={data.images}
+            onChange={retry}
+            linkables={{ events: data.events, information: data.information }}
+          />
         </>
       )}
     </div>

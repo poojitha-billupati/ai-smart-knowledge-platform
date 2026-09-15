@@ -8,8 +8,9 @@ const fields = [
   body('imageUrl').isString().trim().notEmpty(),
   body('category').isString().trim().notEmpty(),
   body('altText').isString().trim().notEmpty(),
-  body('relatedId').optional().isMongoId(),
-  body('relatedType').optional().isIn(['event', 'information']),
+  body('description').optional({ checkFalsy: true }).isString().trim(),
+  body('relatedId').optional({ checkFalsy: true }).isMongoId(),
+  body('relatedType').optional({ checkFalsy: true }).isIn(['event', 'information']),
 ];
 
 export default createCrudRouter(Image, {

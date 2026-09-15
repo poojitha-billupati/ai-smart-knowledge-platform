@@ -4,13 +4,37 @@ import { ErrorState, EmptyState } from '../components/QueryState';
 import { SkeletonCards } from '../components/Skeleton';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
-import { getImages, assetUrl } from '../api/client';
+import ImageDetailModal from '../components/ImageDetailModal';
+import EventDetailModal from '../components/EventDetailModal';
+import { getImages, getEvents, getInformation, assetUrl } from '../api/client';
+
+async function loadGallery() {
+  const [images, events, information] = await Promise.all([
+    getImages(),
+    getEvents(),
+    getInformation(),
+  ]);
+  const eventById = new Map(events.map((e) => [e._id, e]));
+  const infoById = new Map(information.map((r) => [r._id, r]));
+
+  return images.map((img) => ({
+    ...img,
+    linked:
+      img.relatedType === 'event'
+        ? eventById.get(img.relatedId)
+        : img.relatedType === 'information'
+          ? infoById.get(img.relatedId)
+          : undefined,
+  }));
+}
 
 const accents = ['accent', 'sage', 'dusty'];
 
 export default function Gallery() {
-  const { status, data, error, retry } = useAsync(getImages, []);
+  const { status, data, error, retry } = useAsync(loadGallery, []);
   const [category, setCategory] = useState('All');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const categories = useMemo(
     () => ['All', ...new Set((data ?? []).map((img) => img.category))],
@@ -22,10 +46,16 @@ export default function Gallery() {
     return category === 'All' ? data : data.filter((img) => img.category === category);
   }, [data, category]);
 
+  function viewLinkedEvent() {
+    if (!selectedImage?.linked) return;
+    setSelectedEvent({ ...selectedImage.linked, image: assetUrl(selectedImage.imageUrl) });
+    setSelectedImage(null);
+  }
+
   return (
     <div>
       <PageHeader eyebrow="Media" title="Gallery">
-        Images linked to events and knowledge records — not static files.
+        Images linked to events and knowledge records — tap one to see what it's from and why.
       </PageHeader>
 
       <div className="mb-7 flex flex-wrap gap-2">
@@ -57,18 +87,38 @@ export default function Gallery() {
           {filtered.map((img, i) => (
             <div
               key={img._id}
-              className="rise rounded-2xl"
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedImage(img)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedImage(img);
+                }
+              }}
+              className="rise cursor-pointer rounded-2xl"
               style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
             >
               <Card
                 title={img.title}
-                subtitle={`Linked to ${img.relatedType}`}
+                subtitle={img.linked ? `From: ${img.linked.title}` : 'Standalone photo'}
                 image={assetUrl(img.imageUrl)}
                 accent={accents[i % accents.length]}
               />
             </div>
           ))}
         </div>
+      )}
+
+      {selectedImage && (
+        <ImageDetailModal
+          image={selectedImage}
+          onClose={() => setSelectedImage(null)}
+          onViewEvent={viewLinkedEvent}
+        />
+      )}
+      {selectedEvent && (
+        <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       )}
     </div>
   );
