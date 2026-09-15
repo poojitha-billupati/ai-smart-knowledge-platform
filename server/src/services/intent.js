@@ -14,7 +14,7 @@ export const CREATOR_PROFILE = {
   hometown: 'Kavali, Nellore district',
 };
 
-const creatorAnswer = `This platform was built by **${CREATOR_PROFILE.name}**, a ${CREATOR_PROFILE.program} student at ${CREATOR_PROFILE.college}, from ${CREATOR_PROFILE.hometown}.`;
+const creatorAnswer = `VITS Chatbot was built by **${CREATOR_PROFILE.name}**, a ${CREATOR_PROFILE.program} student at ${CREATOR_PROFILE.college}, from ${CREATOR_PROFILE.hometown}.`;
 
 /** "Who built you" and its variants — a fixed profile card, not a model call. */
 export function detectCreatorQuestion(question) {
@@ -23,11 +23,11 @@ export function detectCreatorQuestion(question) {
 
 const replies = {
   greeting:
-    "Hello. I'm the campus assistant — I can answer questions about admissions, fees, facilities, hostel, the library, and upcoming events. What would you like to know?",
+    "Hello. I'm VITS Chatbot, your campus assistant — I can answer questions about admissions, fees, facilities, hostel, the library, and upcoming events. What would you like to know?",
   thanks: 'Happy to help. Ask me anything else about campus.',
   farewell: 'Goodbye. Come back any time you need campus information.',
   capability:
-    "I answer questions using this college's own records — admissions and the application process, fee structure and scholarships, hostel allotment, library hours and facilities, and the upcoming events calendar. Everything I tell you comes from those records, and I show you the sources underneath each answer.",
+    "I'm VITS Chatbot, PBR VITS's campus assistant. I answer using this college's own records — admissions and the application process, fee structure and scholarships, hostel allotment, library hours and facilities, and the upcoming events calendar. Everything I tell you comes from those records, and I show you the sources underneath each answer.",
 };
 
 /**

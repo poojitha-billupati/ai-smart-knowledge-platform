@@ -30,7 +30,7 @@ export default function Navbar() {
           <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
             <Seal className="h-9 w-9 text-accent" />
             <span className="font-display text-[30px] leading-none text-band">
-              Knowledge Platform
+              VITS Chatbot
             </span>
           </Link>
 

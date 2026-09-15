@@ -8,7 +8,7 @@ import Icon, { Seal } from '../components/Icon';
 const GREETING = {
   role: 'assistant',
   content:
-    "Hello. I'm the campus assistant — ask me about admissions, fees, hostel, the library, or upcoming events.",
+    "Hello. I'm VITS Chatbot, your campus assistant — ask me about admissions, fees, hostel, the library, or upcoming events.",
   sources: [],
   ts: null,
 };

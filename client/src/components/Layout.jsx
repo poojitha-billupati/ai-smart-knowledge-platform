@@ -13,7 +13,7 @@ export default function Layout({ children }) {
       </main>
       <footer className="border-t-2 border-dashed border-rule">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-5 py-5 text-xs text-ink-faint">
-          <span>AI Smart Knowledge &amp; Assistance Platform</span>
+          <span>VITS Chatbot — PBR VITS campus assistant</span>
           <span>Answers grounded in campus records only</span>
         </div>
       </footer>
