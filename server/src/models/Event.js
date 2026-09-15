@@ -5,7 +5,7 @@ const eventSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   location: { type: String, required: true, trim: true },
   description: { type: String, required: true },
-  imageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Image' },
+  imageUrl: { type: String, trim: true },
   registrationLink: { type: String, trim: true },
   createdAt: { type: Date, default: Date.now },
 });

@@ -173,10 +173,10 @@ describe('POST /api/images relatedId/relatedType/description', () => {
   const base = {
     title: 'Banner',
     imageUrl: '/images/banner.webp',
-    category: 'Events',
+    category: 'Campus',
     altText: 'A banner',
   };
-  const validEventId = '64a000000000000000000001';
+  const validInfoId = '64a000000000000000000001';
 
   it('accepts description, relatedType and a well-formed relatedId together', async () => {
     const res = await request(app)
@@ -185,13 +185,13 @@ describe('POST /api/images relatedId/relatedType/description', () => {
       .send({
         ...base,
         description: 'Taken at last year\'s fest.',
-        relatedType: 'event',
-        relatedId: validEventId,
+        relatedType: 'information',
+        relatedId: validInfoId,
       });
 
     expect(res.status).toBe(201);
-    expect(res.body.relatedType).toBe('event');
-    expect(res.body.relatedId).toBe(validEventId);
+    expect(res.body.relatedType).toBe('information');
+    expect(res.body.relatedId).toBe(validInfoId);
   });
 
   it('is optional — omitting relatedType/relatedId/description still creates the image', async () => {
@@ -203,11 +203,20 @@ describe('POST /api/images relatedId/relatedType/description', () => {
     expect(res.status).toBe(201);
   });
 
+  it('rejects "event" — event banners live on the Event document now, not here (400)', async () => {
+    const res = await request(app)
+      .post('/api/images')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...base, relatedType: 'event', relatedId: validInfoId });
+
+    expect(res.status).toBe(400);
+  });
+
   it('rejects a malformed relatedId (400)', async () => {
     const res = await request(app)
       .post('/api/images')
       .set('Authorization', `Bearer ${token}`)
-      .send({ ...base, relatedType: 'event', relatedId: 'not-an-id' });
+      .send({ ...base, relatedType: 'information', relatedId: 'not-an-id' });
 
     expect(res.status).toBe(400);
   });
@@ -216,7 +225,7 @@ describe('POST /api/images relatedId/relatedType/description', () => {
     const created = await request(app)
       .post('/api/images')
       .set('Authorization', `Bearer ${token}`)
-      .send({ ...base, relatedType: 'event', relatedId: validEventId });
+      .send({ ...base, relatedType: 'information', relatedId: validInfoId });
 
     const updated = await request(app)
       .put(`/api/images/${created.body._id}`)
@@ -226,6 +235,39 @@ describe('POST /api/images relatedId/relatedType/description', () => {
     expect(updated.status).toBe(200);
     expect(updated.body.relatedType).toBeFalsy();
     expect(updated.body.relatedId).toBeFalsy();
+  });
+});
+
+describe('POST /api/events imageUrl', () => {
+  beforeAll(async () => {
+    token = await createAdminToken(app);
+  });
+
+  const base = {
+    title: 'Orientation',
+    date: '2026-08-01T09:00:00.000Z',
+    location: 'Auditorium',
+    description: 'Welcome session for new students.',
+  };
+
+  it('is optional — an event can be created with no image at all', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send(base);
+
+    expect(res.status).toBe(201);
+    expect(res.body.imageUrl).toBeFalsy();
+  });
+
+  it('accepts and stores an uploaded image path directly on the event', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ ...base, imageUrl: '/images/orientation.webp' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.imageUrl).toBe('/images/orientation.webp');
   });
 });
 

@@ -5,14 +5,13 @@ import { SkeletonCards } from '../components/Skeleton';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import EventDetailModal from '../components/EventDetailModal';
-import { getEvents, getImages, assetUrl } from '../api/client';
+import { getEvents, assetUrl } from '../api/client';
 
 async function loadEvents() {
-  const [events, images] = await Promise.all([getEvents(), getImages()]);
-  const imageById = new Map(images.map((img) => [img._id, assetUrl(img.imageUrl)]));
+  const events = await getEvents();
   return [...events]
     .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .map((event) => ({ ...event, image: event.imageId ? imageById.get(event.imageId) : undefined }));
+    .map((event) => ({ ...event, image: event.imageUrl ? assetUrl(event.imageUrl) : undefined }));
 }
 
 const dateFormatter = new Intl.DateTimeFormat('en-IN', {

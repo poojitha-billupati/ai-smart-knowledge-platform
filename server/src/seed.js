@@ -124,23 +124,10 @@ export async function seed() {
   await Information.insertMany(information);
   await Faq.insertMany(faq);
 
-  const createdEvents = await Event.insertMany(events.map(({ imageFile, ...rest }) => rest));
-
-  const images = await Image.insertMany(
-    createdEvents.map((event, i) => ({
-      title: event.title,
-      imageUrl: `/images/${events[i].imageFile}`,
-      category: 'Events',
-      altText: `Banner for ${event.title}`,
-      relatedId: event._id,
-      relatedType: 'event',
-    })),
-  );
-
-  await Promise.all(
-    createdEvents.map((event, i) =>
-      Event.findByIdAndUpdate(event._id, { imageId: images[i]._id }),
-    ),
+  // Each event carries its own banner directly — no separate Image record.
+  // The Images collection is for gallery photos only.
+  const createdEvents = await Event.insertMany(
+    events.map(({ imageFile, ...rest }) => ({ ...rest, imageUrl: `/images/${imageFile}` })),
   );
 
   const libraryInfo = await Information.findOne({ title: 'Library Hours' });
@@ -154,7 +141,7 @@ export async function seed() {
   });
 
   console.log(
-    `Seeded ${information.length} information, ${createdEvents.length} events, ${faq.length} faq, ${images.length + 1} images`,
+    `Seeded ${information.length} information, ${createdEvents.length} events, ${faq.length} faq, 1 image`,
   );
 }
 

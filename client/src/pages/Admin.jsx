@@ -57,6 +57,7 @@ const COLLECTIONS = {
       { key: 'location', label: 'Location', required: true },
       { key: 'description', label: 'Description', type: 'textarea', required: true },
       { key: 'registrationLink', label: 'Registration link', type: 'url' },
+      { key: 'imageUrl', label: 'Image', required: false },
     ],
   },
   faq: {
@@ -96,9 +97,12 @@ const COLLECTIONS = {
 /**
  * The two "which record is this photo from" fields for the Images form.
  * Built per-render (not static, unlike the other collections) because the
- * option list is the live events/information data, not a fixed schema.
+ * option list is the live information data, not a fixed schema. Event
+ * photos aren't offered here — an event's own image lives on the Event
+ * record itself (see the events collection's `imageUrl` field above), so
+ * this collection only ever holds gallery photos.
  */
-function buildImageLinkFields({ events, information }) {
+function buildImageLinkFields({ information }) {
   return [
     {
       key: 'relatedType',
@@ -106,7 +110,6 @@ function buildImageLinkFields({ events, information }) {
       type: 'select',
       options: [
         { value: '', label: 'Nothing — a standalone photo' },
-        { value: 'event', label: 'An event' },
         { value: 'information', label: 'A knowledge record' },
       ],
     },
@@ -115,12 +118,6 @@ function buildImageLinkFields({ events, information }) {
       label: 'Which one',
       type: 'select',
       options: (values) => {
-        if (values.relatedType === 'event') {
-          return [
-            { value: '', label: events.length ? 'Choose an event…' : 'No events yet' },
-            ...events.map((e) => ({ value: e._id, label: e.title })),
-          ];
-        }
         if (values.relatedType === 'information') {
           return [
             { value: '', label: information.length ? 'Choose a record…' : 'No records yet' },
@@ -505,7 +502,7 @@ export default function Admin() {
             collection="images"
             rows={data.images}
             onChange={retry}
-            linkables={{ events: data.events, information: data.information }}
+            linkables={{ information: data.information }}
           />
         </>
       )}

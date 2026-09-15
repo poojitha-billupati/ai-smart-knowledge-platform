@@ -8,7 +8,7 @@ const fields = [
   body('date').isISO8601(),
   body('location').isString().trim().notEmpty(),
   body('description').isString().trim().notEmpty(),
-  body('imageId').optional().isMongoId(),
+  body('imageUrl').optional({ checkFalsy: true }).isString().trim(),
   body('registrationLink')
     .optional({ checkFalsy: true })
     .isURL({ protocols: ['http', 'https'], require_protocol: true })

@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import Icon from './Icon';
 import { assetUrl } from '../api/client';
 
-const LINKED_LABEL = { event: 'Event', information: 'Knowledge record' };
+const LINKED_LABEL = { information: 'Knowledge record' };
 
-export default function ImageDetailModal({ image, onClose, onViewEvent }) {
+export default function ImageDetailModal({ image, onClose }) {
   useEffect(() => {
     function onKeyDown(e) {
       if (e.key === 'Escape') onClose();
@@ -49,25 +49,13 @@ export default function ImageDetailModal({ image, onClose, onViewEvent }) {
           </p>
 
           {linkedLabel && (
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-sunk px-4 py-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-ink-faint">
-                  {linkedLabel}
-                </p>
-                <p className="text-sm font-semibold text-ink">
-                  {image.linked ? image.linked.title : 'That record has since been removed'}
-                </p>
-              </div>
-              {image.relatedType === 'event' && image.linked && (
-                <button
-                  type="button"
-                  onClick={onViewEvent}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-marigold px-4 py-1.5 text-xs font-bold text-marigold-ink transition-all duration-200 hover:opacity-90 active:scale-95"
-                >
-                  View event
-                  <Icon name="externalLink" className="h-3.5 w-3.5" />
-                </button>
-              )}
+            <div className="rounded-xl bg-sunk px-4 py-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-ink-faint">
+                {linkedLabel}
+              </p>
+              <p className="text-sm font-semibold text-ink">
+                {image.linked ? image.linked.title : 'That record has since been removed'}
+              </p>
             </div>
           )}
         </div>
