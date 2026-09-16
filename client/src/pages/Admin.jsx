@@ -459,7 +459,7 @@ export default function Admin() {
     <div>
       <PageHeader
         eyebrow="Staff only"
-        title="Admin"
+        title="VITS Space"
         aside={
           <button
             type="button"

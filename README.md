@@ -1,4 +1,4 @@
-# VITS Chatbot
+# VITS Space
 
 React + Vite frontend, Express + MongoDB backend, chatbot grounded on the
 knowledge base via retrieval and any OpenAI-compatible model endpoint —

@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "VITS Chatbot",
+    "name": "VITS Space",
     "description": "Manual/API test collection for the plan's §7 testing table. Set `baseUrl` (default http://localhost:5000) and run Auth > Login first to populate `token` for the protected requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
