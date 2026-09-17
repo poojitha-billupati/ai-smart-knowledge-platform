@@ -16,5 +16,7 @@ export default defineConfig({
       '/api': 'http://localhost:5000',
       '/images': 'http://localhost:5000',
     },
+    host: true,
+    allowedHosts: true,
   },
 })
