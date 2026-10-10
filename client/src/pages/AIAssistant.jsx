@@ -5,6 +5,16 @@ import PageHeader from '../components/PageHeader';
 import Markdown from '../components/Markdown';
 import CreatorCard from '../components/CreatorCard';
 import Icon, { Seal } from '../components/Icon';
+import { useSpeechInput } from '../hooks/useSpeechInput';
+
+const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
+const plainText = (md) =>
+  md
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[*_`#>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const GREETING = {
   role: 'assistant',
@@ -28,6 +38,8 @@ export default function AIAssistant() {
   const [input, setInput] = useState('');
   const [pending, setPending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const [speakingIndex, setSpeakingIndex] = useState(null);
+  const voice = useSpeechInput(setInput);
   const listRef = useRef(null);
   const abortRef = useRef(null);
   const location = useLocation();
@@ -42,10 +54,16 @@ export default function AIAssistant() {
     }
   }, [messages]);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      if (canSpeak) window.speechSynthesis.cancel();
+    },
+    [],
+  );
 
-  // A card elsewhere in the app (e.g. Explore's "Ask the assistant about
-  // this") can hand off a question via navigation state instead of the
+  // A suggestion elsewhere in the app (e.g. the Dashboard's question chips)
+  // can hand off a question via navigation state instead of the
   // user typing it. Consume it once, then clear it from history so
   // navigating back here later — or refreshing — doesn't resend it.
   //
@@ -72,6 +90,7 @@ export default function AIAssistant() {
   async function ask(question) {
     if (!question || pending) return;
 
+    voice.stop();
     const history = messages
       .filter((m) => m !== GREETING)
       .map(({ role, content }) => ({ role, content }));
@@ -140,6 +159,21 @@ export default function AIAssistant() {
     }
   }
 
+  function toggleSpeak(text, index) {
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(plainText(text));
+    utterance.lang = navigator.language || 'en-IN';
+    utterance.onend = () => setSpeakingIndex((cur) => (cur === index ? null : cur));
+    utterance.onerror = utterance.onend;
+    setSpeakingIndex(index);
+    window.speechSynthesis.speak(utterance);
+  }
+
   const showSuggestions = messages.length === 1;
 
   return (
@@ -153,6 +187,9 @@ export default function AIAssistant() {
               type="button"
               onClick={() => {
                 abortRef.current?.abort();
+                voice.stop();
+                if (canSpeak) window.speechSynthesis.cancel();
+                setSpeakingIndex(null);
                 setMessages([GREETING]);
               }}
               className="rounded-full bg-surface px-3.5 py-1.5 text-xs font-bold text-ink-soft shadow-card transition-colors hover:text-ink"
@@ -241,6 +278,18 @@ export default function AIAssistant() {
                       <Icon name={copiedIndex === i ? 'check' : 'copy'} className="h-3 w-3" />
                       {copiedIndex === i ? 'Copied' : 'Copy'}
                     </button>
+                    {canSpeak && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSpeak(m.content, i)}
+                        className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide transition-opacity hover:text-accent focus-visible:opacity-100 group-hover:opacity-100 ${
+                          speakingIndex === i ? 'text-accent opacity-100' : 'text-ink-faint opacity-0'
+                        }`}
+                      >
+                        <Icon name="speaker" className="h-3 w-3" />
+                        {speakingIndex === i ? 'Stop' : 'Listen'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -273,6 +322,22 @@ export default function AIAssistant() {
           placeholder="Ask about admissions, fees, events…"
           className="max-h-32 min-h-[46px] flex-1 resize-y rounded-2xl border-2 border-rule bg-surface px-4 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
         />
+        {voice.supported && (
+          <button
+            type="button"
+            onClick={() => (voice.listening ? voice.stop() : voice.start(input))}
+            aria-label={voice.listening ? 'Stop voice input' : 'Start voice input'}
+            aria-pressed={voice.listening}
+            title={voice.listening ? 'Stop listening' : 'Speak your question'}
+            className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full shadow-card transition-all duration-200 active:scale-95 ${
+              voice.listening
+                ? 'animate-pulse bg-terracotta text-white'
+                : 'bg-surface text-ink-soft hover:text-ink'
+            }`}
+          >
+            <Icon name="mic" className="h-5 w-5" />
+          </button>
+        )}
         {pending ? (
           <button
             type="button"
@@ -293,8 +358,11 @@ export default function AIAssistant() {
         )}
       </form>
       <p className="mt-2 text-xs text-ink-faint">
-        Enter to send · Shift + Enter for a new line
+        {voice.listening
+          ? 'Listening… click the mic again to stop, then press Send.'
+          : 'Enter to send · Shift + Enter for a new line'}
       </p>
+      {voice.error && <p className="mt-1 text-xs text-terracotta">{voice.error}</p>}
     </div>
   );
 }

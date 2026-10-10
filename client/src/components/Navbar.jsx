@@ -5,7 +5,6 @@ import { useTheme } from '../hooks/useTheme';
 
 const links = [
   { to: '/', label: 'Dashboard', icon: 'dashboard', end: true },
-  { to: '/explore', label: 'Explore', icon: 'explore' },
   { to: '/gallery', label: 'Gallery', icon: 'gallery' },
   { to: '/events', label: 'Events', icon: 'events' },
   { to: '/assistant', label: 'AI Assistant', icon: 'assistant' },

@@ -10,6 +10,15 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 
+export const USER_KEY = 'auth_user';
+export const AUTH_EXPIRED_EVENT = 'auth-expired';
+
+function expireSession() {
+  clearToken();
+  localStorage.removeItem(USER_KEY);
+  window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+}
+
 /** Resolves a server-relative path (e.g. an image's "/images/x.webp") against the API origin. */
 export const assetUrl = (path) => (path?.startsWith('/') ? `${API_BASE}${path}` : path);
 
@@ -19,6 +28,7 @@ async function request(path, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}/api${path}`, { ...options, headers });
+  if (res.status === 401 && token) expireSession();
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed: ${res.status}`);
@@ -109,6 +119,7 @@ export async function uploadImage(file) {
     body,
   });
 
+  if (res.status === 401 && token) expireSession();
   const responseBody = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(responseBody.error || `Upload failed: ${res.status}`);
   return responseBody.imageUrl;

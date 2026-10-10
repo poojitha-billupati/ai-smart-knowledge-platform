@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAsync } from '../hooks/useAsync';
 import { ErrorState, EmptyState } from '../components/QueryState';
 import { SkeletonTiles, SkeletonTable } from '../components/Skeleton';
@@ -17,9 +17,9 @@ import {
   login,
   setToken,
   clearToken,
+  USER_KEY,
+  AUTH_EXPIRED_EVENT,
 } from '../api/client';
-
-const USER_KEY = 'auth_user';
 
 async function loadDashboard() {
   const [information, events, faq, images] = await Promise.all([
@@ -445,6 +445,12 @@ export default function Admin() {
   const [admin, setAdmin] = useState(storedUser);
   const { status, data, error, retry } = useAsync(loadDashboard, []);
 
+  useEffect(() => {
+    const onExpired = () => setAdmin(null);
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, []);
+
   function handleLogout() {
     clearToken();
     localStorage.removeItem(USER_KEY);
@@ -471,7 +477,7 @@ export default function Admin() {
           </button>
         }
       >
-        Add, edit and remove the records that Explore, Events, Gallery and the assistant all read
+        Add, edit and remove the records that the dashboard, Events, Gallery and the assistant all read
         from. Select rows to delete several at once.
       </PageHeader>
 

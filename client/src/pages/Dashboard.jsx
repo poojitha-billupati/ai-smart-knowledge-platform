@@ -124,12 +124,6 @@ export default function Dashboard() {
                   ? data.information.map((r) => r.title).join(' · ')
                   : 'No knowledge records yet.'}
               </p>
-              <Link
-                to="/explore"
-                className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-ink-faint transition-colors hover:text-ink"
-              >
-                Browse Explore →
-              </Link>
             </div>
           </div>
         </div>

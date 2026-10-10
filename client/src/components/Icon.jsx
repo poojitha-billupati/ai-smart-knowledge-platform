@@ -1,6 +1,5 @@
 const paths = {
   dashboard: 'M4 13h7V4H4v9Zm0 7h7v-5H4v5Zm9 0h7v-9h-7v9Zm0-16v5h7V4h-7Z',
-  explore: 'M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35',
   gallery: 'M3 5h18v14H3V5Zm0 10 5-5 4 4 3-3 6 6',
   events: 'M3 6h18v15H3V6Zm0 5h18M8 3v5m8-5v5',
   assistant: 'M4 4h16v12H9l-5 4V4Zm4 5h8M8 12h5',
@@ -16,6 +15,8 @@ const paths = {
   retry: 'M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5',
   copy: 'M9 9h11v11H9V9Zm-4 6V4h11v2',
   check: 'M5 13l4.5 4.5L19 8',
+  mic: 'M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm-6-3a6 6 0 0 0 12 0M12 18v3',
+  speaker: 'M4 9v6h4l5 4V5L8 9H4Zm12.5-.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12',
   chevron: 'M6 9l6 6 6-6',
   externalLink: 'M14 4h6v6M20 4l-9 9M19 13v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
   calendar: 'M4 6h16v15H4V6Zm0 5h16M8 3v5m8-5v5',
