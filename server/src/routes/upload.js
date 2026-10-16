@@ -1,12 +1,8 @@
-import path from 'path';
 import crypto from 'crypto';
-import { fileURLToPath } from 'url';
 import { Router } from 'express';
 import multer from 'multer';
 import { requireAdmin } from '../middleware/auth.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const IMAGES_DIR = path.join(__dirname, '..', '..', 'public', 'images');
+import UploadedFile from '../models/UploadedFile.js';
 
 const EXT_BY_MIME = {
   'image/jpeg': '.jpg',
@@ -15,16 +11,8 @@ const EXT_BY_MIME = {
   'image/gif': '.gif',
 };
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, IMAGES_DIR),
-  filename: (req, file, cb) => {
-    const ext = EXT_BY_MIME[file.mimetype] ?? path.extname(file.originalname).slice(0, 5);
-    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
-  },
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
   fileFilter: (req, file, cb) => {
     if (!EXT_BY_MIME[file.mimetype]) {
@@ -37,19 +25,13 @@ const upload = multer({
 const router = Router();
 
 /**
- * Stores an uploaded file directly on the server's own disk under
- * public/images (the same directory the seeded images live in, already
- * served statically at /images) and hands back the relative path the
- * client stores as imageUrl — so an admin no longer has to find or paste a
- * working direct image link.
- *
- * Note for later: this is local-disk storage, which does not survive a
- * fresh deploy on a host with an ephemeral filesystem (e.g. Render). Fine
- * for local dev and a single long-running instance; swap for object
- * storage (S3, Cloudinary, etc.) before relying on it in production.
+ * Stores an uploaded image in MongoDB (served back at /images/:filename by
+ * the route in index.js) and hands back the relative path the client stores
+ * as imageUrl. The database, unlike the server's disk, survives redeploys
+ * and restarts on hosts with an ephemeral filesystem such as Render.
  */
-router.post('/', requireAdmin, (req, res) => {
-  upload.single('image')(req, res, (err) => {
+router.post('/', requireAdmin, (req, res, next) => {
+  upload.single('image')(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       const message =
         err.code === 'LIMIT_FILE_SIZE' ? 'Image must be 8MB or smaller' : err.message;
@@ -61,7 +43,18 @@ router.post('/', requireAdmin, (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file was sent' });
     }
-    res.status(201).json({ imageUrl: `/images/${req.file.filename}` });
+
+    try {
+      const filename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${EXT_BY_MIME[req.file.mimetype]}`;
+      await UploadedFile.create({
+        filename,
+        contentType: req.file.mimetype,
+        data: req.file.buffer,
+      });
+      res.status(201).json({ imageUrl: `/images/${filename}` });
+    } catch (saveErr) {
+      next(saveErr);
+    }
   });
 });
 

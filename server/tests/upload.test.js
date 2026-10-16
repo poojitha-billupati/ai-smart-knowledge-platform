@@ -1,13 +1,7 @@
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import request from 'supertest';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { connectTestDb, disconnectTestDb } from './helpers/testDb.js';
 import { createAdminToken } from './helpers/authHelper.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const IMAGES_DIR = path.join(__dirname, '..', 'public', 'images');
 
 // A minimal but genuinely valid 1x1 PNG, so multer's mimetype check passes.
 const TINY_PNG = Buffer.from(
@@ -17,7 +11,6 @@ const TINY_PNG = Buffer.from(
 
 let app;
 let token;
-const writtenFiles = [];
 
 beforeAll(async () => {
   await connectTestDb();
@@ -27,11 +20,6 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await disconnectTestDb();
-  // Multer writes straight to the tracked public/images directory — clean
-  // up anything this suite actually created there.
-  for (const filename of writtenFiles) {
-    await fs.promises.unlink(path.join(IMAGES_DIR, filename)).catch(() => {});
-  }
 });
 
 describe('POST /api/uploads', () => {
@@ -52,10 +40,20 @@ describe('POST /api/uploads', () => {
     expect(res.status).toBe(201);
     expect(res.body.imageUrl).toMatch(/^\/images\/.+\.png$/);
 
-    const filename = res.body.imageUrl.replace('/images/', '');
-    writtenFiles.push(filename);
-    const onDisk = await fs.promises.readFile(path.join(IMAGES_DIR, filename));
-    expect(onDisk.equals(TINY_PNG)).toBe(true);
+    const served = await request(app).get(res.body.imageUrl).buffer(true).parse((r, cb) => {
+      const chunks = [];
+      r.on('data', (c) => chunks.push(c));
+      r.on('end', () => cb(null, Buffer.concat(chunks)));
+    });
+    expect(served.status).toBe(200);
+    expect(served.headers['content-type']).toBe('image/png');
+    expect(served.body.equals(TINY_PNG)).toBe(true);
+  });
+
+  it('returns 404 for an image that was never uploaded', async () => {
+    const res = await request(app).get('/images/does-not-exist.png');
+
+    expect(res.status).toBe(404);
   });
 
   it('rejects a non-image file (400)', async () => {

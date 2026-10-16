@@ -11,6 +11,7 @@ import faqRouter from './routes/faq.js';
 import chatRouter from './routes/chat.js';
 import authRouter from './routes/auth.js';
 import uploadRouter from './routes/upload.js';
+import UploadedFile from './models/UploadedFile.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +20,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use('/images', express.static(path.join(__dirname, '..', 'public', 'images')));
+
+// Admin uploads live in MongoDB; static files above (the seeded images) win,
+// and anything else under /images falls through to here.
+app.get('/images/:filename', async (req, res, next) => {
+  try {
+    const file = await UploadedFile.findOne({ filename: req.params.filename });
+    if (!file) return res.status(404).end();
+    res.set('Content-Type', file.contentType);
+    // Filenames are unique per upload, so a cached copy never goes stale.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(file.data);
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
